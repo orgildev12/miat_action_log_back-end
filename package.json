@@ -1,0 +1,39 @@
+{
+  "name": "back-end",
+  "version": "1.0.0",
+  "description": "MIAT CSQS",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "nodemon --exec ts-node index.ts",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/orgildev12/miat_action_log_back-end.git"
+  },
+  "keywords": [
+    "action",
+    "log"
+  ],
+  "author": "orgil",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/orgildev12/miat_action_log_back-end/issues"
+  },
+  "homepage": "https://github.com/orgildev12/miat_action_log_back-end#readme",
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/oracledb": "^6.9.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.3",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10",
+    "oracledb": "^6.9.0"
+  }
+}
