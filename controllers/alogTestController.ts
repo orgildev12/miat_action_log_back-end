@@ -1,13 +1,6 @@
 import { Request, Response } from 'express';
 import { AlogTestService } from '../services/alogTestService';
 import { ValidationService } from '../services/validationService';
-import { 
-  PaginationQuery, 
-  CreateAlogTestRequest, 
-  UpdateAlogTestRequest,
-  ApiResponse,
-  AlogTestRecord 
-} from '../types';
 
 export class AlogTestController {
   private alogTestService: AlogTestService;
@@ -16,45 +9,27 @@ export class AlogTestController {
     this.alogTestService = new AlogTestService();
   }
 
-  async getAllRecords(req: Request<{}, ApiResponse<AlogTestRecord[]>, {}, PaginationQuery>, res: Response<ApiResponse<AlogTestRecord[]>>): Promise<void> {
+  async getAllRecords(req: Request, res: Response): Promise<void> {
     try {
-      const { limit, offset } = req.query;
-      
-      // Validate pagination parameters
-      const validation = ValidationService.validatePagination(limit, offset);
-      if (!validation.isValid) {
-        res.status(400).json({
-          success: false,
-          message: validation.error
-        });
-        return;
-      }
-
-      const result = await this.alogTestService.getAllRecords(
-        validation.parsedLimit!,
-        validation.parsedOffset!
-      );
+      const result = await this.alogTestService.getAllRecords();
 
       res.json({
         success: true,
-        data: result.rows,
-        total: result.rows?.length || 0
+        data: result.rows
       });
     } catch (error) {
-      console.error('Error fetching alog_test records:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to fetch alog_test records',
+        message: 'Failed to fetch records',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }
 
-  async createRecord(req: Request<{}, ApiResponse, CreateAlogTestRequest>, res: Response<ApiResponse>): Promise<void> {
+  async createRecord(req: Request, res: Response): Promise<void> {
     try {
       const { name } = req.body;
 
-      // Validate input
       const validation = ValidationService.validateName(name);
       if (!validation.isValid) {
         res.status(400).json({
@@ -72,7 +47,6 @@ export class AlogTestController {
         rowsAffected: result.rowsAffected
       });
     } catch (error) {
-      console.error('Error creating alog_test record:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to create record',
@@ -84,6 +58,16 @@ export class AlogTestController {
   async getRecordById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      
+      const validation = ValidationService.validateId(id);
+      if (!validation.isValid) {
+        res.status(400).json({
+          success: false,
+          message: validation.error
+        });
+        return;
+      }
+
       const result = await this.alogTestService.getRecordById(id);
 
       if (!result.rows || result.rows.length === 0) {
@@ -99,7 +83,6 @@ export class AlogTestController {
         data: result.rows[0]
       });
     } catch (error) {
-      console.error('Error fetching alog_test record:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch record',
@@ -113,10 +96,20 @@ export class AlogTestController {
       const { id } = req.params;
       const { name } = req.body;
 
-      if (!name) {
+      const idValidation = ValidationService.validateId(id);
+      if (!idValidation.isValid) {
         res.status(400).json({
           success: false,
-          message: 'name is required'
+          message: idValidation.error
+        });
+        return;
+      }
+
+      const nameValidation = ValidationService.validateName(name);
+      if (!nameValidation.isValid) {
+        res.status(400).json({
+          success: false,
+          message: nameValidation.error
         });
         return;
       }
@@ -137,7 +130,6 @@ export class AlogTestController {
         rowsAffected: result.rowsAffected
       });
     } catch (error) {
-      console.error('Error updating alog_test record:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to update record',
@@ -149,6 +141,16 @@ export class AlogTestController {
   async deleteRecord(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      
+      const validation = ValidationService.validateId(id);
+      if (!validation.isValid) {
+        res.status(400).json({
+          success: false,
+          message: validation.error
+        });
+        return;
+      }
+
       const result = await this.alogTestService.deleteRecord(id);
 
       if (result.rowsAffected === 0) {
@@ -165,7 +167,6 @@ export class AlogTestController {
         rowsAffected: result.rowsAffected
       });
     } catch (error) {
-      console.error('Error deleting alog_test record:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to delete record',

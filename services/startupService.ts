@@ -4,10 +4,8 @@ export class StartupService {
   static async initializeServices(): Promise<void> {
     console.log('🚀 Starting MIAT Action Log Backend...');
     
-    // Initialize database connection
     await dbManager.initialize();
     
-    // Test database connection
     const isConnected = await dbManager.testConnection();
     if (!isConnected) {
       throw new Error('Database connection test failed');
@@ -29,11 +27,9 @@ export class StartupService {
   }
 
   static setupProcessHandlers(): void {
-    // Graceful shutdown handlers
     process.on('SIGINT', () => this.gracefulShutdown('SIGINT'));
     process.on('SIGTERM', () => this.gracefulShutdown('SIGTERM'));
 
-    // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
       console.error('Unhandled Rejection at:', promise, 'reason:', reason);
       process.exit(1);
