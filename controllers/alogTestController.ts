@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AlogTestService } from '../services/alogTestService';
 import { ValidationService } from '../services/validationService';
+import { AlogTest } from '../models/AlogTest';
 
 export class AlogTestController {
   private alogTestService: AlogTestService;
@@ -11,11 +12,11 @@ export class AlogTestController {
 
   async getAllRecords(req: Request, res: Response): Promise<void> {
     try {
-      const result = await this.alogTestService.getAllRecords();
+      const records = await this.alogTestService.getAllRecords();
 
       res.json({
         success: true,
-        data: result.rows
+        data: records.map(record => record.toJSON())
       });
     } catch (error) {
       res.status(500).json({
@@ -30,21 +31,21 @@ export class AlogTestController {
     try {
       const { name } = req.body;
 
-      const validation = ValidationService.validateName(name);
-      if (!validation.isValid) {
+      const result = await this.alogTestService.createRecord({ name });
+
+      if (!result.success) {
         res.status(400).json({
           success: false,
-          message: validation.error
+          message: 'Validation failed',
+          errors: result.errors
         });
         return;
       }
 
-      const result = await this.alogTestService.createRecord(name);
-
       res.status(201).json({
         success: true,
         message: 'Record created successfully',
-        rowsAffected: result.rowsAffected
+        data: result.record?.toJSON()
       });
     } catch (error) {
       res.status(500).json({
@@ -68,9 +69,9 @@ export class AlogTestController {
         return;
       }
 
-      const result = await this.alogTestService.getRecordById(id);
+      const record = await this.alogTestService.getRecordById(id);
 
-      if (!result.rows || result.rows.length === 0) {
+      if (!record) {
         res.status(404).json({
           success: false,
           message: 'Record not found'
@@ -80,7 +81,7 @@ export class AlogTestController {
 
       res.json({
         success: true,
-        data: result.rows[0]
+        data: record.toJSON()
       });
     } catch (error) {
       res.status(500).json({
@@ -105,21 +106,13 @@ export class AlogTestController {
         return;
       }
 
-      const nameValidation = ValidationService.validateName(name);
-      if (!nameValidation.isValid) {
+      const result = await this.alogTestService.updateRecord(id, { name });
+
+      if (!result.success) {
         res.status(400).json({
           success: false,
-          message: nameValidation.error
-        });
-        return;
-      }
-
-      const result = await this.alogTestService.updateRecord(id, name);
-
-      if (result.rowsAffected === 0) {
-        res.status(404).json({
-          success: false,
-          message: 'Record not found'
+          message: 'Update failed',
+          errors: result.errors
         });
         return;
       }
@@ -127,7 +120,7 @@ export class AlogTestController {
       res.json({
         success: true,
         message: 'Record updated successfully',
-        rowsAffected: result.rowsAffected
+        data: result.record?.toJSON()
       });
     } catch (error) {
       res.status(500).json({
@@ -153,18 +146,18 @@ export class AlogTestController {
 
       const result = await this.alogTestService.deleteRecord(id);
 
-      if (result.rowsAffected === 0) {
+      if (!result.success) {
         res.status(404).json({
           success: false,
-          message: 'Record not found'
+          message: 'Delete failed',
+          errors: result.errors
         });
         return;
       }
 
       res.json({
         success: true,
-        message: 'Record deleted successfully',
-        rowsAffected: result.rowsAffected
+        message: 'Record deleted successfully'
       });
     } catch (error) {
       res.status(500).json({
