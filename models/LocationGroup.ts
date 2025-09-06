@@ -36,6 +36,13 @@ export class LocationGroup {
         });
     }
 
+    static modelForUpdateDB(row: any): LocationGroup {
+        return new LocationGroup({
+            name_en: row.name_en,
+            name_mn: row.name_mn
+        });
+    }
+
     modelForUpdateDB(): any {
         return {
             name_en: this.name_en,
