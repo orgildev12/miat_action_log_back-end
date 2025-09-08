@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const LocationGroupSchema = z.object({
-    id: z.int().positive().optional(), 
+    id: z.number().int().positive().optional(), 
     name_en: z.string()
         .min(1, 'English name is required')
         .max(50, 'English name must be 50 characters or less')

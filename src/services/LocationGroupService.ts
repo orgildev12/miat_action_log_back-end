@@ -1,6 +1,6 @@
 import { dbManager } from '../../database';
 import { LocationGroup } from '../models/LocationGroup';
-import { ValidationError } from '../middleware/errorHandler/errorTypes';
+import { ValidationError, NotFoundError } from '../middleware/errorHandler/errorTypes';
 
 export class LocationGroupService {
 
@@ -24,18 +24,19 @@ export class LocationGroupService {
         if ((result.rowsAffected || 0) === 0) {
             throw new Error('Failed to create location group');
         }
-        return LocationGroup.fromDatabase(result);
+        // We don't get rows back from INSERT; return the validated model or re-fetch if needed
+        return newLocationGroup;
     }
 
-    async getById(id: number): Promise<any> {
+    async getById(id: number): Promise<LocationGroup> {
         const result = await dbManager.executeQuery(
             `SELECT * FROM LOCATION_GROUP WHERE ID = :1`, 
             [id]
         );
-        if ((result.rowsAffected || 0) === 0) {
-            throw new Error('Failed to get location group');
+        if (result.rows && result.rows.length > 0) {
+            return LocationGroup.fromDatabase(result.rows[0]);
         }
-        return LocationGroup.fromDatabase(result);
+        throw new NotFoundError(`Location group with id: ${id} not found`);
     }
 
     async getAll(): Promise<LocationGroup[]> {
@@ -73,7 +74,7 @@ export class LocationGroupService {
         );
         
         if ((result.rowsAffected || 0) === 0) {
-            throw new Error(`Location group with ID ${id} not found`);
+            throw new NotFoundError(`Location group with ID ${id} not found`);
         }
         return await this.getById(id);
     }

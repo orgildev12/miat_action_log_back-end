@@ -1,6 +1,6 @@
 {
   "name": "back-end",
-  "version": "1.0.0",
+  "version": "0.5.0",
   "description": "MIAT CSQS",
   "main": "index.js",
   "scripts": {
