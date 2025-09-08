@@ -1,8 +1,10 @@
-interface ILocationGroupData {
-    id?: number;
-    name_en: string;
-    name_mn: string;
-}
+import { z } from 'zod';
+declare const LocationGroupSchema: z.ZodObject<{
+    id: z.ZodOptional<z.ZodInt>;
+    name_en: z.ZodString;
+    name_mn: z.ZodString;
+}, z.core.$strip>;
+type ILocationGroupData = z.infer<typeof LocationGroupSchema>;
 export declare class LocationGroup implements ILocationGroupData {
     static modelFor: {
         createRequest: {

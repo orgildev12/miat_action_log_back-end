@@ -1,18 +1,17 @@
-import { dbManager } from '../database';
+import { dbManager } from '../../database';
 import { LocationGroup } from '../models/LocationGroup';
+import { ValidationError } from '../middleware/errorHandler/errorTypes';
 
 export class LocationGroupService {
 
     async create(requestData: typeof LocationGroup.modelFor.createRequest): Promise<LocationGroup> {
         const newLocationGroup = LocationGroup.fromRequestData(requestData);
-        
         const validation = newLocationGroup.validate();
         if (!validation.isValid) {
-            throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+            throw new ValidationError(validation.errors);
         }
 
         const dbData = newLocationGroup.toDatabaseFormat();
-
         const result = await dbManager.executeQuery(
             `INSERT INTO LOCATION_GROUP (NAME_EN, NAME_MN)
              VALUES (:1, :2)`,
@@ -22,20 +21,21 @@ export class LocationGroupService {
             ],
             { autoCommit: true }
         );
-
-        return newLocationGroup;
+        if ((result.rowsAffected || 0) === 0) {
+            throw new Error('Failed to create location group');
+        }
+        return LocationGroup.fromDatabase(result);
     }
 
-    async getById(id: number): Promise<LocationGroup> {
+    async getById(id: number): Promise<any> {
         const result = await dbManager.executeQuery(
             `SELECT * FROM LOCATION_GROUP WHERE ID = :1`, 
             [id]
         );
-        
-        if (result.rows && result.rows.length > 0) {
-            return LocationGroup.fromDatabase(result.rows[0]);
+        if ((result.rowsAffected || 0) === 0) {
+            throw new Error('Failed to get location group');
         }
-        throw new Error(`Location group with ID ${id} not found`);
+        return LocationGroup.fromDatabase(result);
     }
 
     async getAll(): Promise<LocationGroup[]> {
@@ -51,20 +51,15 @@ export class LocationGroupService {
     }
 
     async update(id: number, updateData: typeof LocationGroup.modelFor.updateRequest): Promise<LocationGroup> {
-        // Get existing location group
         const existingLocationGroup = await this.getById(id);
-        
-        // Update with new data
         existingLocationGroup.updateWith(updateData);
-        
-        // Validate
+
         const validation = existingLocationGroup.validate();
         if (!validation.isValid) {
-            throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+            throw new ValidationError(validation.errors);
         }
 
         const dbData = existingLocationGroup.toDatabaseFormat();
-        
         const result = await dbManager.executeQuery(
             `UPDATE LOCATION_GROUP
              SET NAME_EN = :1, NAME_MN = :2
@@ -80,7 +75,6 @@ export class LocationGroupService {
         if ((result.rowsAffected || 0) === 0) {
             throw new Error(`Location group with ID ${id} not found`);
         }
-        
         return await this.getById(id);
     }
 

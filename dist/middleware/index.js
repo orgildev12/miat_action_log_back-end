@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notFoundHandler = exports.errorHandler = exports.corsMiddleware = void 0;
+exports.errorHandler = exports.corsMiddleware = void 0;
 const corsMiddleware = (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -14,19 +14,26 @@ const corsMiddleware = (req, res, next) => {
 };
 exports.corsMiddleware = corsMiddleware;
 const errorHandler = (err, req, res, next) => {
-    console.error('Unhandled error:', err);
+    console.error('Error occurred:', err);
+    if (err.status && err.name) {
+        const response = {
+            name: err.name,
+            message: err.message
+        };
+        if (err.name === 'ValidationError' && err.errors) {
+            response.errors = err.errors;
+        }
+        if (process.env.NODE_ENV === 'development') {
+            response.stack = err.stack;
+        }
+        res.status(err.status).json(response);
+        return;
+    }
     res.status(500).json({
-        success: false,
+        name: 'InternalServerError',
         message: 'Internal server error',
         error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
 };
 exports.errorHandler = errorHandler;
-const notFoundHandler = (req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found'
-    });
-};
-exports.notFoundHandler = notFoundHandler;
 //# sourceMappingURL=index.js.map

@@ -1,16 +1,18 @@
-interface IHazardData {
-    id?: number;
-    code?: string;
-    user_id: number;
-    type_id: number;
-    location_id: number;
-    description: string;
-    solution?: string;
-    is_private: number;
-    status_id: number;
-    date_created?: Date;
-    date_updated?: Date;
-}
+import { z } from 'zod';
+declare const HazardSchema: z.ZodObject<{
+    id: z.ZodOptional<z.ZodNumber>;
+    code: z.ZodOptional<z.ZodString>;
+    user_id: z.ZodNumber;
+    type_id: z.ZodNumber;
+    location_id: z.ZodNumber;
+    description: z.ZodString;
+    solution: z.ZodOptional<z.ZodString>;
+    is_private: z.ZodDefault<z.ZodNumber>;
+    status_id: z.ZodNumber;
+    date_created: z.ZodOptional<z.ZodDate>;
+    date_updated: z.ZodOptional<z.ZodDate>;
+}, z.core.$strip>;
+type IHazardData = z.infer<typeof HazardSchema>;
 export declare class Hazard implements IHazardData {
     static modelFor: {
         createRequest: {

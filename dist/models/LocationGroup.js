@@ -1,6 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LocationGroup = void 0;
+const zod_1 = require("zod");
+const LocationGroupSchema = zod_1.z.object({
+    id: zod_1.z.int().positive().optional(),
+    name_en: zod_1.z.string()
+        .min(1, 'English name is required')
+        .max(50, 'English name must be 50 characters or less')
+        .trim(),
+    name_mn: zod_1.z.string()
+        .min(1, 'Mongolian name is required')
+        .max(50, 'Mongolian name must be 50 characters or less')
+        .trim()
+});
 class LocationGroup {
     constructor(data) {
         this.id = data.id;
@@ -8,17 +20,12 @@ class LocationGroup {
         this.name_mn = data.name_mn;
     }
     validate() {
-        const errors = [];
-        if (!this.name_en || this.name_en.trim().length === 0) {
-            errors.push('English name is required');
+        const result = LocationGroupSchema.safeParse(this);
+        if (result.success) {
+            return { isValid: true, errors: [] };
         }
-        if (!this.name_mn || this.name_mn.trim().length === 0) {
-            errors.push('Mongolian name is required');
-        }
-        return {
-            isValid: errors.length === 0,
-            errors
-        };
+        const errorMessages = result.error.issues.map(issue => issue.message);
+        return { isValid: false, errors: errorMessages };
     }
     toDatabaseFormat() {
         return {

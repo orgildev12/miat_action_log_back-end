@@ -3,27 +3,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LocationGroupService = void 0;
 const database_1 = require("../database");
 const LocationGroup_1 = require("../models/LocationGroup");
+const errors_1 = require("../middleware/errors");
 class LocationGroupService {
     async create(requestData) {
         const newLocationGroup = LocationGroup_1.LocationGroup.fromRequestData(requestData);
         const validation = newLocationGroup.validate();
         if (!validation.isValid) {
-            throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+            throw new errors_1.ValidationError(validation.errors);
         }
         const dbData = newLocationGroup.toDatabaseFormat();
-        const result = await database_1.dbManager.executeQuery(`INSERT INTO LOCATION_GROUP (NAME_EN, NAME_MN)
-             VALUES (:1, :2)`, [
-            dbData.NAME_EN,
-            dbData.NAME_MN
-        ], { autoCommit: true });
-        return newLocationGroup;
+        try {
+            const result = await database_1.dbManager.executeQuery(`INSERT INTO LOCATION_GROUP (NAME_EN, NAME_MN)
+                 VALUES (:1, :2)`, [
+                dbData.NAME_EN,
+                dbData.NAME_MN
+            ], { autoCommit: true });
+            return newLocationGroup;
+        }
+        catch (error) {
+            throw new errors_1.DatabaseError('create location group', error);
+        }
     }
     async getById(id) {
-        const result = await database_1.dbManager.executeQuery(`SELECT * FROM LOCATION_GROUP WHERE ID = :1`, [id]);
-        if (result.rows && result.rows.length > 0) {
-            return LocationGroup_1.LocationGroup.fromDatabase(result.rows[0]);
+        try {
+            const result = await database_1.dbManager.executeQuery(`SELECT * FROM LOCATION_GROUP WHERE ID = :1`, [id]);
+            if (result.rows && result.rows.length > 0) {
+                return LocationGroup_1.LocationGroup.fromDatabase(result.rows[0]);
+            }
+            throw new errors_1.NotFoundError(`Location group with id: ${id} not found`);
         }
-        throw new Error(`Location group with ID ${id} not found`);
+        catch (error) {
+            if (error instanceof errors_1.NotFoundError) {
+                throw error;
+            }
+            throw new errors_1.DatabaseError('fetch location group', error);
+        }
     }
     async getAll() {
         const result = await database_1.dbManager.executeQuery(`SELECT * FROM LOCATION_GROUP ORDER BY NAME_EN`, []);
@@ -37,7 +51,7 @@ class LocationGroupService {
         existingLocationGroup.updateWith(updateData);
         const validation = existingLocationGroup.validate();
         if (!validation.isValid) {
-            throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+            throw new errors_1.ValidationError(validation.errors);
         }
         const dbData = existingLocationGroup.toDatabaseFormat();
         const result = await database_1.dbManager.executeQuery(`UPDATE LOCATION_GROUP

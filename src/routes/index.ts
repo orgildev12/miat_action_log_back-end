@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import hazardRoutes from './hazardRoutes';
 import healthRoutes from './healthRoutes';
 import databaseRoutes from './databaseRoutes';
-import locationGroupRoutes from './locationGroupRoute';
+import hazardRoutes from './hazard';
+import locationGroupRoutes from './locationGroup';
+
 const router = Router();
 
 router.use('/health', healthRoutes);

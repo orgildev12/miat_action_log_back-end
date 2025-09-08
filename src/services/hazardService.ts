@@ -1,4 +1,4 @@
-import { dbManager } from '../database';
+import { dbManager } from '../../database';
 import { Hazard } from '../models/Hazard';
 
 export class HazardService {
@@ -31,16 +31,15 @@ export class HazardService {
     return newHazard;
   }
 
-  async getById(id: number): Promise<Hazard> {
+  async getById(id: number): Promise<any> {
     const result = await dbManager.executeQuery(
       `SELECT * FROM HAZARD WHERE ID = :1`,
       [id]
     );
-
     if (result.rows && result.rows.length > 0) {
       return Hazard.fromDatabase(result.rows[0]);
     }
-    throw new Error(`Hazard with ID ${id} not found`);
+    return false;
   }
 
   async getAll(): Promise<Hazard[]> {

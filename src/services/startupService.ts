@@ -1,4 +1,4 @@
-import { dbManager } from '../database';
+import { dbManager } from '../../database';
 
 export class StartupService {
   static async initializeServices(): Promise<void> {

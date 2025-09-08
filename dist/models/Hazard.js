@@ -1,6 +1,30 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Hazard = void 0;
+const zod_1 = require("zod");
+const HazardSchema = zod_1.z.object({
+    id: zod_1.z.number().int().positive().optional(),
+    code: zod_1.z.string()
+        .min(1, 'Code is required')
+        .max(25, 'Code must be 25 characters or less')
+        .trim()
+        .optional(),
+    user_id: zod_1.z.number().int().positive('User ID must be a positive integer'),
+    type_id: zod_1.z.number().int().positive('Type ID must be a positive integer'),
+    location_id: zod_1.z.number().int().positive('Location ID must be a positive integer'),
+    description: zod_1.z.string()
+        .min(1, 'Description is required')
+        .max(1000, 'Description must be 1000 characters or less')
+        .trim(),
+    solution: zod_1.z.string()
+        .max(1000, 'Solution must be 1000 characters or less')
+        .trim()
+        .optional(),
+    is_private: zod_1.z.number().int().min(0).max(1, 'Is private must be 0 or 1').default(0),
+    status_id: zod_1.z.number().int().positive('Status ID must be a positive integer'),
+    date_created: zod_1.z.date().optional(),
+    date_updated: zod_1.z.date().optional()
+});
 class Hazard {
     constructor(data) {
         this.id = data.id;
@@ -16,26 +40,12 @@ class Hazard {
         this.date_updated = data.date_updated;
     }
     validate() {
-        const errors = [];
-        if (!this.user_id || this.user_id <= 0) {
-            errors.push('User ID is required');
+        const result = HazardSchema.safeParse(this);
+        if (result.success) {
+            return { isValid: true, errors: [] };
         }
-        if (!this.type_id || this.type_id <= 0) {
-            errors.push('Type ID is required');
-        }
-        if (!this.location_id || this.location_id <= 0) {
-            errors.push('Location ID is required');
-        }
-        if (!this.description || this.description.trim().length === 0) {
-            errors.push('Description is required');
-        }
-        if (!this.status_id || this.status_id <= 0) {
-            errors.push('Status ID is required');
-        }
-        return {
-            isValid: errors.length === 0,
-            errors
-        };
+        const errorMessages = result.error.issues.map(issue => issue.message);
+        return { isValid: false, errors: errorMessages };
     }
     toDatabaseFormat() {
         return {

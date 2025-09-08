@@ -1,11 +1,11 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { HazardService } from '../services/hazardService';
 import { Hazard } from '../models/Hazard';
 
 export class HazardController {
   private hazardService = new HazardService();
 
-  async create(req: Request, res: Response): Promise<void> {
+  async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const requestData: typeof Hazard.modelFor.createRequest = req.body;
       const createdHazard = await this.hazardService.create(requestData);
@@ -15,10 +15,7 @@ export class HazardController {
         data: createdHazard.toJSON()
       });
     } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: (error as Error).message
-      });
+      next(error)
     }
   }
 
@@ -26,7 +23,9 @@ export class HazardController {
     try {
       const id = parseInt(req.params.id);
       const hazard = await this.hazardService.getById(id);
-      
+      if(!hazard){
+        throw new Error(`Hazard with id: ${id} not found`);
+      }
       res.json({
         success: true,
         data: hazard.toJSON()
