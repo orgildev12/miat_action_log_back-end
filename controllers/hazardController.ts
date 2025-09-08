@@ -7,17 +7,8 @@ export class HazardController {
 
   async create(req: Request, res: Response): Promise<void> {
     try {
-      const hazard = new Hazard({
-        user_id: req.body.user_id,
-        type_id: req.body.type_id,
-        location_id: req.body.location_id,
-        description: req.body.description,
-        solution: req.body.solution,
-        is_private: req.body.is_private || 0,
-        status_id: req.body.status_id
-      });
-
-      const createdHazard = await this.hazardService.create(hazard);
+      const requestData: typeof Hazard.modelFor.createRequest = req.body;
+      const createdHazard = await this.hazardService.create(requestData);
 
       res.status(201).json({
         success: true,
@@ -74,17 +65,9 @@ export class HazardController {
   async update(req: Request, res: Response): Promise<void> {
     try {
       const id = parseInt(req.params.id);
-      const hazard = new Hazard({
-        user_id: req.body.user_id,
-        type_id: req.body.type_id,
-        location_id: req.body.location_id,
-        description: req.body.description,
-        solution: req.body.solution,
-        is_private: req.body.is_private,
-        status_id: req.body.status_id
-      });
-
-      const updatedHazard = await this.hazardService.update(id, hazard);
+      const updateData: typeof Hazard.modelFor.updateRequest = req.body;
+      
+      const updatedHazard = await this.hazardService.update(id, updateData);
       
       res.json({
         success: true,

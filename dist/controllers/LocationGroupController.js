@@ -1,115 +1,115 @@
-import { Request, Response } from 'express';
-import { LocationGroupService } from '../services/LocationGroupService';
-import { LocationGroup } from '../models/LocationGroup';
-
-export class LocationGroupController {
-    private locationGroupService = new LocationGroupService();
-
-    async create(req: Request, res: Response): Promise<void> {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LocationGroupController = void 0;
+const LocationGroupService_1 = require("../services/LocationGroupService");
+class LocationGroupController {
+    constructor() {
+        this.locationGroupService = new LocationGroupService_1.LocationGroupService();
+    }
+    async create(req, res) {
         try {
-            const requestData: typeof LocationGroup.modelFor.createRequest = req.body;
+            const requestData = req.body;
             const createdLocationGroup = await this.locationGroupService.create(requestData);
-
             res.status(201).json({
                 success: true,
                 data: createdLocationGroup.toJSON()
             });
-        } catch (error) {
+        }
+        catch (error) {
             res.status(400).json({
                 success: false,
-                message: (error as Error).message
+                message: error.message
             });
         }
     }
-
-    async getById(req: Request, res: Response): Promise<void> {
+    async getById(req, res) {
         try {
             const id = Number(req.params.id);
             const locationGroup = await this.locationGroupService.getById(id);
-
             res.json({
                 success: true,
                 data: locationGroup.toJSON()
             });
-        } catch (error) {
-            if ((error as Error).message.includes('not found')) {
+        }
+        catch (error) {
+            if (error.message.includes('not found')) {
                 res.status(404).json({
                     success: false,
-                    message: (error as Error).message
+                    message: error.message
                 });
-            } else {
+            }
+            else {
                 res.status(400).json({
                     success: false,
-                    message: (error as Error).message
+                    message: error.message
                 });
             }
         }
     }
-
-    async getAll(req: Request, res: Response): Promise<void> {
+    async getAll(req, res) {
         try {
             const locationGroups = await this.locationGroupService.getAll();
-
             res.json({
                 success: true,
                 data: locationGroups.map(lg => lg.toJSON())
             });
-        } catch (error) {
+        }
+        catch (error) {
             res.status(500).json({
                 success: false,
-                message: (error as Error).message
+                message: error.message
             });
         }
     }
-
-    async update(req: Request, res: Response): Promise<void> {
+    async update(req, res) {
         try {
             const id = Number(req.params.id);
-            const updateData: typeof LocationGroup.modelFor.updateRequest = req.body;
-            
+            const updateData = req.body;
             const updatedLocationGroup = await this.locationGroupService.update(id, updateData);
-            
             res.json({
                 success: true,
                 data: updatedLocationGroup.toJSON()
             });
-        } catch (error) {
-            if ((error as Error).message.includes('not found')) {
+        }
+        catch (error) {
+            if (error.message.includes('not found')) {
                 res.status(404).json({
                     success: false,
-                    message: (error as Error).message
+                    message: error.message
                 });
-            } else {
+            }
+            else {
                 res.status(400).json({
                     success: false,
-                    message: (error as Error).message
+                    message: error.message
                 });
             }
         }
     }
-    
-    
-    async delete(req: Request, res: Response): Promise<void> {
+    async delete(req, res) {
         try {
             const id = Number(req.params.id);
             const isDeleted = await this.locationGroupService.delete(id);
-            
             if (isDeleted) {
                 res.json({
                     success: true,
                     message: 'Location group deleted successfully'
                 });
-            } else {
+            }
+            else {
                 res.status(404).json({
                     success: false,
                     message: 'Location group not found'
                 });
             }
-        } catch (error) {
+        }
+        catch (error) {
             res.status(400).json({
                 success: false,
-                message: (error as Error).message
+                message: error.message
             });
         }
     }
 }
+exports.LocationGroupController = LocationGroupController;
+//# sourceMappingURL=LocationGroupController.js.map

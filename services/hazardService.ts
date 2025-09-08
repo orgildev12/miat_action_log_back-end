@@ -3,39 +3,37 @@ import { Hazard } from '../models/Hazard';
 
 export class HazardService {
   
-  async create(hazard: Hazard): Promise<Hazard> {
-    const validation = hazard.validate();
+  async create(requestData: typeof Hazard.modelFor.createRequest): Promise<Hazard> {
+    const newHazard = Hazard.fromRequestData(requestData);
+    
+    const validation = newHazard.validate();
     if (!validation.isValid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
-    const createData = hazard.toCreateDatabase();
+    const dbData = newHazard.toDatabaseFormat();
     
     const result = await dbManager.executeQuery(
-      `INSERT INTO hazard (user_id, type_id, location_id, description, solution, is_private, status_id)
-       VALUES (:1, :2, :3, :4, :5, :6, :7)
-       RETURNING id INTO :8`,
+      `INSERT INTO HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, IS_PRIVATE, STATUS_ID)
+       VALUES (:1, :2, :3, :4, :5, :6, :7)`,
       [
-        createData.USER_ID,
-        createData.TYPE_ID,
-        createData.LOCATION_ID,
-        createData.DESCRIPTION,
-        createData.SOLUTION,
-        createData.IS_PRIVATE,
-        createData.STATUS_ID,
-        { dir: 3003, type: 2010 }
+        dbData.USER_ID,
+        dbData.TYPE_ID,
+        dbData.LOCATION_ID,
+        dbData.DESCRIPTION,
+        dbData.SOLUTION,
+        dbData.IS_PRIVATE,
+        dbData.STATUS_ID
       ],
       { autoCommit: true }
     );
 
-    const generatedId = result.outBinds[0];
-    return await this.getById(generatedId);
+    return newHazard;
   }
 
   async getById(id: number): Promise<Hazard> {
     const result = await dbManager.executeQuery(
-      `SELECT *
-       FROM hazard WHERE id = :1`,
+      `SELECT * FROM HAZARD WHERE ID = :1`,
       [id]
     );
 
@@ -47,9 +45,9 @@ export class HazardService {
 
   async getAll(): Promise<Hazard[]> {
     const result = await dbManager.executeQuery(
-      `SELECT id, code, user_id, type_id, location_id, description, solution, 
-              is_private, status_id, date_created, date_updated
-       FROM hazard ORDER BY date_created DESC`
+      `SELECT ID, CODE, USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, 
+              IS_PRIVATE, STATUS_ID, DATE_CREATED, DATE_UPDATED
+       FROM HAZARD ORDER BY DATE_CREATED DESC`
     );
 
     if (result.rows) {
@@ -58,27 +56,34 @@ export class HazardService {
     return [];
   }
 
-  async update(id: number, hazard: Hazard): Promise<Hazard> {
-    const validation = hazard.validate();
+  async update(id: number, updateData: typeof Hazard.modelFor.updateRequest): Promise<Hazard> {
+    // Get existing hazard
+    const existingHazard = await this.getById(id);
+    
+    // Update with new data
+    existingHazard.updateWith(updateData);
+    
+    // Validate
+    const validation = existingHazard.validate();
     if (!validation.isValid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
-    const updateData = hazard.toCreateDatabase(); // Same data structure
+    const dbData = existingHazard.toDatabaseFormat();
     
     const result = await dbManager.executeQuery(
-      `UPDATE hazard 
-       SET user_id = :1, type_id = :2, location_id = :3, description = :4, 
-           solution = :5, is_private = :6, status_id = :7, date_updated = SYSDATE
-       WHERE id = :8`,
+      `UPDATE HAZARD 
+       SET USER_ID = :1, TYPE_ID = :2, LOCATION_ID = :3, DESCRIPTION = :4, 
+           SOLUTION = :5, IS_PRIVATE = :6, STATUS_ID = :7, DATE_UPDATED = SYSDATE
+       WHERE ID = :8`,
       [
-        updateData.USER_ID,
-        updateData.TYPE_ID,
-        updateData.LOCATION_ID,
-        updateData.DESCRIPTION,
-        updateData.SOLUTION,
-        updateData.IS_PRIVATE,
-        updateData.STATUS_ID,
+        dbData.USER_ID,
+        dbData.TYPE_ID,
+        dbData.LOCATION_ID,
+        dbData.DESCRIPTION,
+        dbData.SOLUTION,
+        dbData.IS_PRIVATE,
+        dbData.STATUS_ID,
         id
       ],
       { autoCommit: true }
@@ -93,7 +98,7 @@ export class HazardService {
 
   async delete(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `DELETE FROM hazard WHERE id = :1`,
+      `DELETE FROM HAZARD WHERE ID = :1`,
       [id],
       { autoCommit: true }
     );
