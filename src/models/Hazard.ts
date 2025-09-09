@@ -15,11 +15,14 @@ const HazardSchema = z.object({
         .max(1000, 'Description must be 1000 characters or less')
         .trim(),
     solution: z.string()
+        .min(1, 'Solution is required')
         .max(1000, 'Solution must be 1000 characters or less')
-        .trim()
-        .optional(),
+        .trim(),
     is_private: z.number().int().min(0).max(1, 'Is private must be 0 or 1').default(0), // CHECK (is_private IN (0,1))
-    status_id: z.number().int().positive('Status ID must be a positive integer'),
+    isStarted: z.number().int().min(0).max(1, 'isStarted must be 0 or 1').default(0),
+    isApproved: z.number().int().min(0).max(1, 'isApproved must be 0 or 1').nullish(),
+    isChecking: z.number().int().min(0).max(1, 'isChecking must be 0 or 1').default(0),
+    isConfirmed: z.number().int().min(0).max(1, 'isConfirmed must be 0 or 1').nullish(),
     date_created: z.date().optional(), // Default SYSDATE
     date_updated: z.date().optional()  // Default SYSDATE
 });
@@ -33,18 +36,8 @@ export class Hazard implements IHazardData {
             type_id: number;
             location_id: number;
             description: string;
-            solution?: string;
-            is_private?: number; // 0 or 1, defaults to 0
-            status_id: number;
-        },
-        updateRequest: {} as {
-            user_id?: number;
-            type_id?: number;
-            location_id?: number;
-            description?: string;
-            solution?: string;
-            is_private?: number; // 0 or 1
-            status_id?: number;
+            solution: string;
+            is_private: number; // 0 or 1, defaults to 0
         },
         fetchData: {} as {
             ID?: number;
@@ -53,9 +46,12 @@ export class Hazard implements IHazardData {
             TYPE_ID: number;
             LOCATION_ID: number;
             DESCRIPTION: string;
-            SOLUTION?: string | null;
+            SOLUTION?: string;
             IS_PRIVATE: number;
-            STATUS_ID: number;
+            ISSTARTED: number;
+            ISAPPROVED?: number | null;
+            ISCHECKING: number;
+            ISCONFIRMED?: number | null;
             DATE_CREATED?: Date;
             DATE_UPDATED?: Date;
         }
@@ -67,9 +63,12 @@ export class Hazard implements IHazardData {
     public type_id: number;
     public location_id: number;
     public description: string;
-    public solution?: string;
+    public solution: string;
     public is_private: number;
-    public status_id: number;
+    public isStarted: number;
+    public isApproved?: number | null;
+    public isChecking: number;
+    public isConfirmed?: number | null;
     public date_created?: Date;
     public date_updated?: Date;
 
@@ -82,7 +81,10 @@ export class Hazard implements IHazardData {
         this.description = data.description;
         this.solution = data.solution;
         this.is_private = data.is_private || 0;
-        this.status_id = data.status_id;
+        this.isStarted = data.isStarted ?? 0;
+        this.isApproved = data.isApproved;
+        this.isChecking = data.isChecking ?? 0;
+        this.isConfirmed = data.isConfirmed;
         this.date_created = data.date_created;
         this.date_updated = data.date_updated;
     }
@@ -106,9 +108,12 @@ export class Hazard implements IHazardData {
             TYPE_ID: this.type_id,
             LOCATION_ID: this.location_id,
             DESCRIPTION: this.description,
-            SOLUTION: this.solution || null,
+            SOLUTION: this.solution,
             IS_PRIVATE: this.is_private,
-            STATUS_ID: this.status_id,
+            ISSTARTED: this.isStarted,
+            ISAPPROVED: this.isApproved ?? null,
+            ISCHECKING: this.isChecking,
+            ISCONFIRMED: this.isConfirmed ?? null,
             DATE_CREATED: this.date_created,
             DATE_UPDATED: this.date_updated
         };
@@ -124,7 +129,10 @@ export class Hazard implements IHazardData {
             description: this.description,
             solution: this.solution,
             is_private: this.is_private,
-            status_id: this.status_id,
+            isStarted: this.isStarted,
+            isApproved: this.isApproved,
+            isChecking: this.isChecking,
+            isConfirmed: this.isConfirmed,
             date_created: this.date_created,
             date_updated: this.date_updated
         };
@@ -139,8 +147,11 @@ export class Hazard implements IHazardData {
             location_id: row.LOCATION_ID,
             description: row.DESCRIPTION,
             solution: row.SOLUTION,
-            is_private: row.IS_PRIVATE || 0,
-            status_id: row.STATUS_ID,
+            is_private: row.IS_PRIVATE,
+            isStarted: row.ISSTARTED,
+            isApproved: row.ISAPPROVED ?? null,
+            isChecking: row.ISCHECKING,
+            isConfirmed: row.ISCONFIRMED ?? null,
             date_created: row.DATE_CREATED,
             date_updated: row.DATE_UPDATED
         });
@@ -154,22 +165,14 @@ export class Hazard implements IHazardData {
             description: request.description,
             solution: request.solution,
             is_private: request.is_private || 0,
-            status_id: request.status_id
+            isStarted: (request as any).isStarted ?? 0,
+            isApproved: (request as any).isApproved ?? null,
+            isChecking: (request as any).isChecking ?? 0,
+            isConfirmed: (request as any).isConfirmed ?? null
         });
-    }
-
-    updateWith(updateData: typeof Hazard.modelFor.updateRequest): void {
-        if (updateData.user_id !== undefined) this.user_id = updateData.user_id;
-        if (updateData.type_id !== undefined) this.type_id = updateData.type_id;
-        if (updateData.location_id !== undefined) this.location_id = updateData.location_id;
-        if (updateData.description !== undefined) this.description = updateData.description;
-        if (updateData.solution !== undefined) this.solution = updateData.solution;
-        if (updateData.is_private !== undefined) this.is_private = updateData.is_private;
-        if (updateData.status_id !== undefined) this.status_id = updateData.status_id;
     }
 }
 
 export type HazardCreateRequest = typeof Hazard.modelFor.createRequest;
-export type HazardUpdateRequest = typeof Hazard.modelFor.updateRequest;
 export type HazardData = IHazardData;
 export type HazardOracleFormat = typeof Hazard.modelFor.fetchData;

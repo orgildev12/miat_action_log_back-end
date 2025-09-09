@@ -1,113 +1,131 @@
-import { NextFunction, Request, Response } from 'express';
-import { HazardService } from '../services/hazardService';
+import { Request, Response, NextFunction } from 'express';
+import { HazardService } from '../services/HazardService';
 import { Hazard } from '../models/Hazard';
+import { ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError } from '../middleware/errorHandler/errorTypes';
 
 export class HazardController {
-  private hazardService = new HazardService();
+    private hazardService = new HazardService();
 
-  async create(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const requestData: typeof Hazard.modelFor.createRequest = req.body;
-      const createdHazard = await this.hazardService.create(requestData);
+    create = async (req: Request, res: Response): Promise<void> => {
+        const requestData: typeof Hazard.modelFor.createRequest = req.body;
+        const createdHazard = await this.hazardService.create(requestData);
+        res.status(201).json(createdHazard);
+    };
 
-      res.status(201).json({
-        success: true,
-        data: createdHazard.toJSON()
-      });
-    } catch (error) {
-      next(error)
-    }
-  }
 
-  async getById(req: Request, res: Response): Promise<void> {
-    try {
-      const id = parseInt(req.params.id);
-      const hazard = await this.hazardService.getById(id);
-      if(!hazard){
-        throw new Error(`Hazard with id: ${id} not found`);
-      }
-      res.json({
-        success: true,
-        data: hazard.toJSON()
-      });
-    } catch (error) {
-      if ((error as Error).message.includes('not found')) {
-        res.status(404).json({
-          success: false,
-          message: (error as Error).message
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          message: (error as Error).message
-        });
-      }
-    }
-  }
+    getById = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const hazard = await this.hazardService.getById(id);
 
-  async getAll(req: Request, res: Response): Promise<void> {
-    try {
-      const hazards = await this.hazardService.getAll();
-      
-      res.json({
-        success: true,
-        data: hazards.map(h => h.toJSON())
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: (error as Error).message
-      });
-    }
-  }
+        if(!hazard){
+            throw new NotFoundError(`hazard not found`);
+        }
+        res.status(200).json(hazard);
+    };
 
-  async update(req: Request, res: Response): Promise<void> {
-    try {
-      const id = parseInt(req.params.id);
-      const updateData: typeof Hazard.modelFor.updateRequest = req.body;
-      
-      const updatedHazard = await this.hazardService.update(id, updateData);
-      
-      res.json({
-        success: true,
-        data: updatedHazard.toJSON()
-      });
-    } catch (error) {
-      if ((error as Error).message.includes('not found')) {
-        res.status(404).json({
-          success: false,
-          message: (error as Error).message
-        });
-      } else {
-        res.status(400).json({
-          success: false,
-          message: (error as Error).message
-        });
-      }
-    }
-  }
 
-  async delete(req: Request, res: Response): Promise<void> {
-    try {
-      const id = parseInt(req.params.id);
-      const deleted = await this.hazardService.delete(id);
-      
-      if (deleted) {
-        res.json({
-          success: true,
-          message: 'Hazard deleted'
-        });
-      } else {
-        res.status(404).json({
-          success: false,
-          message: 'Hazard not found'
-        });
-      }
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: (error as Error).message
-      });
-    }
-  }
+    getAll = async (req: Request, res: Response): Promise<void> => {
+        const hazards = await this.hazardService.getAll();
+        res.json(hazards.map(lg => lg.toJSON()));
+    };
+
+
+    startAnalysis = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        await this.hazardService.getById(id);
+
+        const isAppected = await this.hazardService.startAnalysis(id);
+        if(!isAppected){
+            throw new DatabaseUnavailableError();
+        }
+        res.status(200).json('hazard analysis started successfully')
+    };
+
+
+    approveRequest = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const hazard = await this.hazardService.getById(id);
+
+        if(hazard.isStarted !== 1){
+            throw new ConflictError(`hazard analysis not started yet`);
+        }
+        const isAppected = await this.hazardService.approveRequest(id);
+        if(!isAppected){
+            throw new DatabaseUnavailableError();
+        }
+        res.status(200).json('hazard request approved successfully')
+    };
+
+
+    denyRequest = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const hazard = await this.hazardService.getById(id);
+        if(!hazard){
+            throw new NotFoundError(`hazard not found`);
+        }
+        if(hazard.isStarted !== 1){
+            throw new ConflictError(`hazard analysis not started yet`);
+        }
+        const isAppected = await this.hazardService.denyRequest(id);
+        if(!isAppected){
+            throw new DatabaseUnavailableError();
+        }
+        res.status(200).json('hazard request denied successfully')
+    };
+
+
+    startChecking = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const hazard = await this.hazardService.getById(id);
+        if(hazard.isApproved === null){
+            throw new ConflictError(`request not approved or denied yet`);
+        }
+        const isAppected = await this.hazardService.startChecking(id);
+        if(!isAppected){
+            throw new DatabaseUnavailableError();
+        }
+        res.status(200).json('hazard checking started successfully')
+    };
+
+
+    confirmResponse = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const hazard = await this.hazardService.getById(id);
+        if(hazard.isChecking === 0){
+            throw new ConflictError(`you can't confirm response without checking response`);
+        }
+        const isAppected = await this.hazardService.confirmResponse(id);
+        if(!isAppected){
+            throw new DatabaseUnavailableError();
+        }
+        res.status(200).json('hazard response confirmed successfully')
+    };
+
+
+    denyResponse = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const hazard = await this.hazardService.getById(id);
+        if(hazard.isChecking === 0){
+            throw new ForbiddenError(`you can't deny response without checking response`);
+        }
+        const isAppected = await this.hazardService.approveRequest(id);
+        if(!isAppected){
+            throw new DatabaseUnavailableError();
+        }
+        res.status(200).json('hazard response denied successfully')
+    };
+    
+
+    delete = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const isTypeExist = await this.hazardService.getById(id);
+        if(!isTypeExist){
+            throw new NotFoundError(`hazard not found`);
+        }
+
+        const isDeleted = await this.hazardService.delete(id);
+        if (isDeleted) {
+            res.status(200).json('hazard deleted successfully');
+        }
+    };
 }

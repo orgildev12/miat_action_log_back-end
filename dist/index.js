@@ -10,6 +10,8 @@ const errorHandler_1 = __importDefault(require("./src/middleware/errorHandler/er
 const cors_1 = require("./src/middleware/cors");
 const errorTypes_1 = require("./src/middleware/errorHandler/errorTypes");
 const startupService_1 = require("./src/services/startupService");
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const swagger_1 = require("./src/config/swagger");
 dotenv_1.default.config();
 const PORT = process.env.PORT || 3000;
 async function startServer() {
@@ -20,6 +22,7 @@ async function startServer() {
         app.use(express_1.default.urlencoded({ extended: true }));
         app.use(cors_1.corsMiddleware);
         app.use('/', routes_1.default);
+        app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.swaggerSpecs));
         app.use((req, res, next) => {
             next(new errorTypes_1.NotFoundError(`Route ${req.originalUrl} not found`));
         });
@@ -29,6 +32,7 @@ async function startServer() {
             console.log(`Server is running on port ${PORT}`);
             console.log(`Health check: http://localhost:${PORT}/health`);
             console.log(`Test DB connection: http://localhost:${PORT}/api/test-db`);
+            console.log(`Swagger docs: http://localhost:${PORT}/api-docs`);
         });
     }
     catch (err) {

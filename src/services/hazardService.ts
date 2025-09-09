@@ -1,4 +1,5 @@
 import { dbManager } from '../../database';
+import { GenericError, NotFoundError } from '../middleware/errorHandler/errorTypes';
 import { Hazard } from '../models/Hazard';
 
 export class HazardService {
@@ -14,8 +15,8 @@ export class HazardService {
     const dbData = newHazard.toDatabaseFormat();
     
     const result = await dbManager.executeQuery(
-      `INSERT INTO HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, IS_PRIVATE, STATUS_ID)
-       VALUES (:1, :2, :3, :4, :5, :6, :7)`,
+      `INSERT INTO HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, IS_PRIVATE, ISSTARTED, ISAPPROVED, ISCHECKING, ISCONFIRMED)
+       VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10)`,
       [
         dbData.USER_ID,
         dbData.TYPE_ID,
@@ -23,7 +24,10 @@ export class HazardService {
         dbData.DESCRIPTION,
         dbData.SOLUTION,
         dbData.IS_PRIVATE,
-        dbData.STATUS_ID
+        dbData.ISSTARTED,
+        dbData.ISAPPROVED,
+        dbData.ISCHECKING,
+        dbData.ISCONFIRMED
       ],
       { autoCommit: true }
     );
@@ -31,21 +35,20 @@ export class HazardService {
     return newHazard;
   }
 
-  async getById(id: number): Promise<any> {
+  async getById(id: number): Promise<Hazard> {
     const result = await dbManager.executeQuery(
       `SELECT * FROM HAZARD WHERE ID = :1`,
       [id]
     );
-    if (result.rows && result.rows.length > 0) {
-      return Hazard.fromDatabase(result.rows[0]);
+    if (!result.rows || result.rows.length === 0) {
+      throw new NotFoundError(`Hazard not found`);
     }
-    return false;
+    return Hazard.fromDatabase(result.rows[0]);
   }
 
   async getAll(): Promise<Hazard[]> {
     const result = await dbManager.executeQuery(
-      `SELECT ID, CODE, USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, 
-              IS_PRIVATE, STATUS_ID, DATE_CREATED, DATE_UPDATED
+      `SELECT *
        FROM HAZARD ORDER BY DATE_CREATED DESC`
     );
 
@@ -53,46 +56,6 @@ export class HazardService {
       return result.rows.map(row => Hazard.fromDatabase(row));
     }
     return [];
-  }
-
-  async update(id: number, updateData: typeof Hazard.modelFor.updateRequest): Promise<Hazard> {
-    // Get existing hazard
-    const existingHazard = await this.getById(id);
-    
-    // Update with new data
-    existingHazard.updateWith(updateData);
-    
-    // Validate
-    const validation = existingHazard.validate();
-    if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
-    }
-
-    const dbData = existingHazard.toDatabaseFormat();
-    
-    const result = await dbManager.executeQuery(
-      `UPDATE HAZARD 
-       SET USER_ID = :1, TYPE_ID = :2, LOCATION_ID = :3, DESCRIPTION = :4, 
-           SOLUTION = :5, IS_PRIVATE = :6, STATUS_ID = :7, DATE_UPDATED = SYSDATE
-       WHERE ID = :8`,
-      [
-        dbData.USER_ID,
-        dbData.TYPE_ID,
-        dbData.LOCATION_ID,
-        dbData.DESCRIPTION,
-        dbData.SOLUTION,
-        dbData.IS_PRIVATE,
-        dbData.STATUS_ID,
-        id
-      ],
-      { autoCommit: true }
-    );
-
-    if ((result.rowsAffected || 0) === 0) {
-      throw new Error(`Hazard with ID ${id} not found`);
-    }
-
-    return await this.getById(id);
   }
 
   async delete(id: number): Promise<boolean> {
@@ -103,5 +66,82 @@ export class HazardService {
     );
 
     return (result.rowsAffected || 0) > 0;
+  }
+
+// Update methods for specific status fields
+  async startAnalysis(id: number): Promise<boolean> {
+    const result = await dbManager.executeQuery(
+      `UPDATE HAZARD SET ISSTARTED = 1, DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      [ id ],
+      { autoCommit: true }
+    );
+    if ((result.rowsAffected || 0) === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  async approveRequest(id: number): Promise<boolean> {
+    const result = await dbManager.executeQuery(
+      `UPDATE HAZARD SET ISAPPROVED = 1, DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      [ id ],
+      { autoCommit: true }
+    );
+    if ((result.rowsAffected || 0) === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  async denyRequest(id: number): Promise<boolean> {
+    const result = await dbManager.executeQuery(
+      `UPDATE HAZARD SET ISAPPROVED = 0, DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      [ id ],
+      { autoCommit: true }
+    );
+
+    if ((result.rowsAffected || 0) === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  async startChecking(id: number): Promise<boolean> {
+    const result = await dbManager.executeQuery(
+      `UPDATE HAZARD SET ISCHECKING = 1, DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      [ id ],
+      { autoCommit: true }
+    );
+
+    if ((result.rowsAffected || 0) === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  async confirmResponse(id: number): Promise<boolean> {
+    const result = await dbManager.executeQuery(
+      `UPDATE HAZARD SET ISCONFIRMED = 1, DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      [ id ],
+      { autoCommit: true }
+    );
+
+    if ((result.rowsAffected || 0) === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  async denyResponse(id: number): Promise<boolean> {
+    const result = await dbManager.executeQuery(
+      `UPDATE HAZARD SET ISCONFIRMED = 0, DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      [ id ],
+      { autoCommit: true }
+    );
+
+    if ((result.rowsAffected || 0) === 0) {
+      return false;
+    }
+    return true;
   }
 }

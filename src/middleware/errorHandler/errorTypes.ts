@@ -32,13 +32,19 @@ export class ForbiddenError extends Error {
 
 export class ConflictError extends Error {
   public status = 409;
-  constructor(resource: string, field?: string) {
-    const message = field
-      ? `${resource} with this ${field} already exists`
-      : `${resource} already exists`;
+  constructor(message: string) {
     super(message);
     Object.setPrototypeOf(this, ConflictError.prototype);
     this.name = 'ConflictError';
+  }
+}
+
+export class DatabaseUnavailableError  extends Error {
+  public status = 503;
+  constructor(message: string = 'Temporary database outage. Please try again later.') {
+    super(message);
+    Object.setPrototypeOf(this, DatabaseUnavailableError.prototype);
+    this.name = 'DatabaseUnavailableError';
   }
 }
 
