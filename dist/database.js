@@ -5,16 +5,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.dbManager = exports.DatabaseManager = void 0;
 const oracledb_1 = __importDefault(require("oracledb"));
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
+const db_1 = require("./src/config/db");
 class DatabaseManager {
     constructor() {
         this.pool = null;
-        this.config = {
-            user: process.env.DB_USER || '',
-            password: process.env.DB_PASSWORD || '',
-            connectString: process.env.DB_CONNECTION_STRING || ''
-        };
+        this.config = { ...db_1.dbConfig.connection };
     }
     static getInstance() {
         if (!DatabaseManager.instance) {
@@ -28,10 +23,10 @@ class DatabaseManager {
                 user: this.config.user,
                 password: this.config.password,
                 connectString: this.config.connectString,
-                poolMin: 2,
-                poolMax: 10,
-                poolIncrement: 1,
-                poolTimeout: 60
+                poolMin: db_1.dbConfig.pool.poolMin,
+                poolMax: db_1.dbConfig.pool.poolMax,
+                poolIncrement: db_1.dbConfig.pool.poolIncrement,
+                poolTimeout: db_1.dbConfig.pool.poolTimeout,
             });
             console.log('✅ Oracle Database connection pool created successfully');
         }

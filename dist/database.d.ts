@@ -1,9 +1,4 @@
 import oracledb from 'oracledb';
-export interface DatabaseConfig {
-    user: string;
-    password: string;
-    connectString: string;
-}
 export declare class DatabaseManager {
     private static instance;
     private pool;

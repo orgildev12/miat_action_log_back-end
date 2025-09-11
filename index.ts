@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import express from 'express';
 import router from './src/routes';
 import errorHandler from './src/middleware/errorHandler/errorHandler';
@@ -7,8 +7,6 @@ import { NotFoundError } from './src/middleware/errorHandler/errorTypes';
 import { StartupService } from './src/services/startupService';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpecs } from './src/config/swagger';
-
-dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 

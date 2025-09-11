@@ -1,13 +1,5 @@
 import oracledb from 'oracledb';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-export interface DatabaseConfig {
-  user: string;
-  password: string;
-  connectString: string;
-}
+import { dbConfig, DatabaseConfig } from './src/config/db';
 
 export class DatabaseManager {
   private static instance: DatabaseManager;
@@ -15,11 +7,8 @@ export class DatabaseManager {
   private config: DatabaseConfig;
 
   private constructor() {
-    this.config = {
-      user: process.env.DB_USER || '',
-      password: process.env.DB_PASSWORD || '',
-      connectString: process.env.DB_CONNECTION_STRING || ''
-    };
+  // read-only copy from centralized config
+  this.config = { ...dbConfig.connection };
   }
 
   public static getInstance(): DatabaseManager {
@@ -35,10 +24,10 @@ export class DatabaseManager {
         user: this.config.user,
         password: this.config.password,
         connectString: this.config.connectString,
-        poolMin: 2,
-        poolMax: 10,
-        poolIncrement: 1,
-        poolTimeout: 60
+        poolMin: dbConfig.pool.poolMin,
+        poolMax: dbConfig.pool.poolMax,
+        poolIncrement: dbConfig.pool.poolIncrement,
+        poolTimeout: dbConfig.pool.poolTimeout,
       });
       
       console.log('✅ Oracle Database connection pool created successfully');

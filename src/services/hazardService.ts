@@ -15,19 +15,15 @@ export class HazardService {
     const dbData = newHazard.toDatabaseFormat();
     
     const result = await dbManager.executeQuery(
-      `INSERT INTO HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, IS_PRIVATE, ISSTARTED, ISAPPROVED, ISCHECKING, ISCONFIRMED)
-       VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9, :10)`,
+      `INSERT INTO HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, IS_PRIVATE)
+       VALUES (:1, :2, :3, :4, :5, :6)`,
       [
         dbData.USER_ID,
         dbData.TYPE_ID,
         dbData.LOCATION_ID,
         dbData.DESCRIPTION,
         dbData.SOLUTION,
-        dbData.IS_PRIVATE,
-        dbData.ISSTARTED,
-        dbData.ISAPPROVED,
-        dbData.ISCHECKING,
-        dbData.ISCONFIRMED
+        dbData.IS_PRIVATE || 0,
       ],
       { autoCommit: true }
     );
@@ -66,82 +62,5 @@ export class HazardService {
     );
 
     return (result.rowsAffected || 0) > 0;
-  }
-
-// Update methods for specific status fields
-  async startAnalysis(id: number): Promise<boolean> {
-    const result = await dbManager.executeQuery(
-      `UPDATE HAZARD SET ISSTARTED = 1, DATE_UPDATED = SYSDATE WHERE ID = :1`,
-      [ id ],
-      { autoCommit: true }
-    );
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
-  }
-
-  async approveRequest(id: number): Promise<boolean> {
-    const result = await dbManager.executeQuery(
-      `UPDATE HAZARD SET ISAPPROVED = 1, DATE_UPDATED = SYSDATE WHERE ID = :1`,
-      [ id ],
-      { autoCommit: true }
-    );
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
-  }
-
-  async denyRequest(id: number): Promise<boolean> {
-    const result = await dbManager.executeQuery(
-      `UPDATE HAZARD SET ISAPPROVED = 0, DATE_UPDATED = SYSDATE WHERE ID = :1`,
-      [ id ],
-      { autoCommit: true }
-    );
-
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
-  }
-
-  async startChecking(id: number): Promise<boolean> {
-    const result = await dbManager.executeQuery(
-      `UPDATE HAZARD SET ISCHECKING = 1, DATE_UPDATED = SYSDATE WHERE ID = :1`,
-      [ id ],
-      { autoCommit: true }
-    );
-
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
-  }
-
-  async confirmResponse(id: number): Promise<boolean> {
-    const result = await dbManager.executeQuery(
-      `UPDATE HAZARD SET ISCONFIRMED = 1, DATE_UPDATED = SYSDATE WHERE ID = :1`,
-      [ id ],
-      { autoCommit: true }
-    );
-
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
-  }
-
-  async denyResponse(id: number): Promise<boolean> {
-    const result = await dbManager.executeQuery(
-      `UPDATE HAZARD SET ISCONFIRMED = 0, DATE_UPDATED = SYSDATE WHERE ID = :1`,
-      [ id ],
-      { autoCommit: true }
-    );
-
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
   }
 }
