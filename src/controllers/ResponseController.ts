@@ -10,10 +10,6 @@ export class ResponseController {
     getById = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
         const response = await this.responseService.getById(id);
-
-        if(!response){
-            throw new NotFoundError(`response not found`);
-        }
         res.status(200).json(response);
     };
 
@@ -64,6 +60,7 @@ export class ResponseController {
         res.status(200).json('response request denied successfully')
     };
 
+
     finishAnalysis = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
         const response = await this.responseService.getById(id);
@@ -76,6 +73,7 @@ export class ResponseController {
         }
         res.status(200).json('response checking started successfully')
     };
+
 
     startChecking = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
@@ -108,15 +106,14 @@ export class ResponseController {
     denyResponse = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
         const response = await this.responseService.getById(id);
-        const responseBody = req.body.response_body
+        const reasonToDeny = req.body.reason_to_deny
         if(response.isCheckingResponse === 0){
             throw new ForbiddenError(`you can't deny response without checking response`);
         }
-        const isAppected = await this.responseService.denyResponse(id, responseBody);
+        const isAppected = await this.responseService.denyResponse(id, reasonToDeny);
         if(!isAppected){
             throw new DatabaseUnavailableError();
         }
         res.status(200).json('response denied successfully')
     };
-    
 }

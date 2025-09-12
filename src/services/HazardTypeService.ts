@@ -13,9 +13,10 @@ export class HazardTypeService {
 
         const dbData = newHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO HAZARD_TYPE (NAME_EN, NAME_MN)
-             VALUES (:1, :2)`,
+            `INSERT INTO HAZARD_TYPE (SHORT_CODE, NAME_EN, NAME_MN)
+             VALUES (:1, :2, :3)`,
             [
+                dbData.SHORT_CODE,
                 dbData.NAME_EN,
                 dbData.NAME_MN,
             ],
@@ -26,6 +27,7 @@ export class HazardTypeService {
         }
         // INSERT doesn't return rows; return the constructed model or re-fetch
         return new HazardType({
+            short_code: newHazardType.short_code,
             name_en: newHazardType.name_en,
             name_mn: newHazardType.name_mn,
         });
@@ -44,7 +46,7 @@ export class HazardTypeService {
 
     async getAll(): Promise<HazardType[]> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM HAZARD_TYPE ORDER BY NAME_EN`, 
+            `SELECT * FROM HAZARD_TYPE ORDER BY NAME_MN`, 
             []
         );
 
@@ -66,9 +68,10 @@ export class HazardTypeService {
         const dbData = existingHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
             `UPDATE HAZARD_TYPE
-             SET NAME_EN = :1, NAME_MN = :2
-             WHERE ID = :3`,
+             SET SHORT_CODE = :1, NAME_EN = :2, NAME_MN = :3
+             WHERE ID = :4`,
             [
+                dbData.SHORT_CODE,
                 dbData.NAME_EN,
                 dbData.NAME_MN,
                 id

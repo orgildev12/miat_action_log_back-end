@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 const HazardTypeSchema = z.object({
     id: z.number().int().positive().optional(),
+    short_code: z.string()
+        .min(1, 'Short code is required')
+        .max(10, 'Short code must be 10 characters or less')
+        .trim(),
     name_en: z.string()
         .min(1, 'English name is required')
         .max(100, 'English name must be 100 characters or less')
@@ -10,7 +14,7 @@ const HazardTypeSchema = z.object({
         .min(1, 'Mongolian name is required')
         .max(100, 'Mongolian name must be 100 characters or less')
         .trim(),
-    last_code: z.number().int().positive().optional()
+    last_index: z.number().int().positive().optional()
 });
 
 type IHazardTypeData = z.infer<typeof HazardTypeSchema>;
@@ -19,33 +23,36 @@ type IHazardTypeData = z.infer<typeof HazardTypeSchema>;
 export class HazardType implements IHazardTypeData {
     static modelFor = {
         createRequest: {} as {
+            short_code: string;
             name_en: string;
             name_mn: string;
-            last_code: number;
         },
         updateRequest: {} as {
+            short_code?: string;
             name_en?: string;
             name_mn?: string;
-            last_code?: number;
         },
         fetchData: {} as {
             ID?: number;
+            SHORT_CODE: string;
             NAME_EN: string;
             NAME_MN: string;
-            LAST_CODE?: number;
+            LAST_INDEX?: number;
         }
     };
 
     public id?: number;
+    public short_code: string;
     public name_en: string;
     public name_mn: string;
     public last_code?: number;
 
     constructor(data: IHazardTypeData){
         this.id = data.id;
+        this.short_code = data.short_code.toUpperCase();
         this.name_en = data.name_en;
         this.name_mn = data.name_mn;
-        this.last_code = data.last_code;
+        this.last_code = data.last_index;
     }
 
     validate(): { isValid: boolean; errors: string[] } {
@@ -62,41 +69,44 @@ export class HazardType implements IHazardTypeData {
     toDatabaseFormat(): typeof HazardType.modelFor.fetchData {
         return {
             ID: this.id,
+            SHORT_CODE: this.short_code,
             NAME_EN: this.name_en,
             NAME_MN: this.name_mn,
-            LAST_CODE: this.last_code
+            LAST_INDEX: this.last_code
         };
     }
 
     toJSON(): IHazardTypeData {
         return {
             id: this.id,
+            short_code: this.short_code,
             name_en: this.name_en,
             name_mn: this.name_mn,
-            last_code: this.last_code
+            last_index: this.last_code
         };
     }
 
     static fromDatabase(row: any): HazardType {
         return new HazardType({
             id: row.ID,
+            short_code: row.SHORT_CODE,
             name_en: row.NAME_EN,
             name_mn: row.NAME_MN,
-            last_code: row.LAST_CODE
+            last_index: row.LAST_CODE
         });
     }
 
     static fromRequestData(request: typeof HazardType.modelFor.createRequest): HazardType {
         return new HazardType({
+            short_code: request.short_code,
             name_en: request.name_en,
             name_mn: request.name_mn,
-            last_code: request.last_code
         });
     }
 
     updateWith(updateData: typeof HazardType.modelFor.updateRequest): void {
+        if (updateData.short_code !== undefined) this.short_code = updateData.short_code;
         if (updateData.name_en !== undefined) this.name_en = updateData.name_en;
         if (updateData.name_mn !== undefined) this.name_mn = updateData.name_mn;
-    if (updateData.last_code !== undefined) this.last_code = updateData.last_code;
     }
 }
