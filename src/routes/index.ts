@@ -5,6 +5,7 @@ import hazardRoutes from './hazard';
 import locationGroupRoutes from './locationGroup';
 import locationRoutes from './location/locationRoutes';
 import hazardTypeRoutes from './hazardType';
+import responseRoutes from './response';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/api/hazard', hazardRoutes);
 router.use('/api/locationGroup', locationGroupRoutes);
 router.use('/api/locations', locationRoutes);
 router.use('/api/hazardType', hazardTypeRoutes);
+router.use('/api/response', responseRoutes);
 
 export default router;

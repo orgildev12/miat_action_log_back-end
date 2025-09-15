@@ -15,10 +15,13 @@ export class HazardService {
     const dbData = newHazard.toDatabaseFormat();
     
     const result = await dbManager.executeQuery(
-      `INSERT INTO HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, IS_PRIVATE)
-       VALUES (:1, :2, :3, :4, :5, :6)`,
+      `INSERT INTO HAZARD (USER_ID, USER_NAME, EMAIL, PHONE_NUMBER, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, IS_PRIVATE)
+       VALUES (:1, :2, :3, :4, :5, :6, :7, :8, :9)`,
       [
         dbData.USER_ID,
+        dbData.USER_NAME,
+        dbData.EMAIL,
+        dbData.PHONE_NUMBER,
         dbData.TYPE_ID,
         dbData.LOCATION_ID,
         dbData.DESCRIPTION,

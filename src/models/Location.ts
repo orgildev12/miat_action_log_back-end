@@ -10,7 +10,7 @@ const LocationSchema = z.object({
         .min(1, 'Mongolian name is required')
         .max(50, 'Mongolian name must be 50 characters or less')
         .trim(),
-    location_group_id: z.number().int().positive('Location group ID must be a positive integer')
+    location_group_id: z.number().int().positive('Location group ID must be a positive integer').nullable().optional()
 });
 
 type ILocationData = z.infer<typeof LocationSchema>;
@@ -20,31 +20,31 @@ export class Location implements ILocationData {
         createRequest: {} as {
             name_en: string;
             name_mn: string;
-            location_group_id: number;
+            location_group_id?: number | null;
         },
         updateRequest: {} as {
             name_en?: string;
             name_mn?: string;
-            location_group_id?: number;
+            location_group_id?: number | null;
         },
         fetchData: {} as {
             ID?: number;
             NAME_EN: string;
             NAME_MN: string;
-            LOCATION_GROUP_ID: number;
+            LOCATION_GROUP_ID?: number | null;
         }
     };
 
     public id?: number;
     public name_en: string;
     public name_mn: string;
-    public location_group_id: number;
+    public location_group_id: number | null;
 
     constructor(data: ILocationData){
         this.id = data.id;
         this.name_en = data.name_en;
         this.name_mn = data.name_mn;
-        this.location_group_id = data.location_group_id;
+        this.location_group_id = data.location_group_id ?? null;
     }
 
     validate(): { isValid: boolean; errors: string[] } {

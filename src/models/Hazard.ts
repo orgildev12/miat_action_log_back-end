@@ -10,6 +10,9 @@ const HazardSchema = z.object({
     statusEn: z.enum(['Sent', 'On it', 'Solved', 'Rejected']).default('Sent'),
     statusMn: z.enum(['Илгээгдсэн', 'Ажиллаж байна', 'Шийдэгдсэн', 'Татгалзсан']).default('Илгээгдсэн'),
     user_id: z.number().int().positive('User ID must be a positive integer').nullish(),
+    user_name: z.string().max(320, 'User name must be 320 characters or less').nullish(),
+    email: z.string().email('Invalid email format').max(320, 'Email must be 320 characters or less').nullish(),
+    phone_number: z.string().length(8, 'Phone number must be exactly 8 digits').regex(/^\d{8}$/, 'Phone number must contain only digits').nullish(),
     type_id: z.number().int().positive('Type ID must be a positive integer'), 
     location_id: z.number().int().positive('Location ID must be a positive integer'),
     description: z.string()
@@ -22,6 +25,16 @@ const HazardSchema = z.object({
         .trim(),
     is_private: z.number().int().min(0).max(1, 'Is private must be 0 or 1').default(0), // CHECK (is_private IN (0,1))
     date_created: z.date().optional(), // Default SYSDATE
+}).refine((data) => {
+    // If user_id exists, other identification fields must be null
+    if (data.user_id !== null && data.user_id !== undefined) {
+        return data.user_name === null && data.email === null && data.phone_number === null;
+    }
+    // If user_id is null, ALL three fields (user_name, email, phone_number) must be provided
+    return data.user_name !== null && data.email !== null && data.phone_number !== null;
+}, {
+    message: 'Either user_id must be provided (with other fields null), or ALL three fields (user_name, email, and phone_number) must be provided (with user_id null)',
+    path: ['user_id', 'user_name', 'email', 'phone_number']
 });
 
 type IHazardData = z.infer<typeof HazardSchema>;
@@ -30,6 +43,9 @@ export class Hazard implements IHazardData {
     static modelFor = {
         createRequest: {} as {
             user_id?: number | null;
+            user_name?: string | null;
+            email?: string | null;
+            phone_number?: string | null;
             type_id: number;
             location_id: number;
             description: string;
@@ -42,6 +58,9 @@ export class Hazard implements IHazardData {
             STATUS_EN?: string;
             STATUS_MN?: string;
             USER_ID?: number | null;
+            USER_NAME?: string | null;
+            EMAIL?: string | null;
+            PHONE_NUMBER?: string | null;
             TYPE_ID: number;
             LOCATION_ID: number;
             DESCRIPTION: string;
@@ -56,6 +75,9 @@ export class Hazard implements IHazardData {
     public statusEn: 'Sent' | 'On it' | 'Solved' | 'Rejected';
     public statusMn: 'Илгээгдсэн' | 'Ажиллаж байна' | 'Шийдэгдсэн' | 'Татгалзсан';
     public user_id?: number | null;
+    public user_name?: string | null;
+    public email?: string | null;
+    public phone_number?: string | null;
     public type_id: number;
     public location_id: number;
     public description: string;
@@ -69,6 +91,9 @@ export class Hazard implements IHazardData {
         this.statusEn = data.statusEn;
         this.statusMn = data.statusMn;
         this.user_id = data.user_id;
+        this.user_name = data.user_name;
+        this.email = data.email;
+        this.phone_number = data.phone_number;
         this.type_id = data.type_id;
         this.location_id = data.location_id;
         this.description = data.description;
@@ -95,6 +120,9 @@ export class Hazard implements IHazardData {
             STATUS_EN: this.statusEn,
             STATUS_MN: this.statusMn,
             USER_ID: this.user_id,
+            USER_NAME: this.user_name,
+            EMAIL: this.email,
+            PHONE_NUMBER: this.phone_number,
             TYPE_ID: this.type_id,
             LOCATION_ID: this.location_id,
             DESCRIPTION: this.description,
@@ -111,6 +139,9 @@ export class Hazard implements IHazardData {
             statusEn: this.statusEn,
             statusMn: this.statusMn,
             user_id: this.user_id,
+            user_name: this.user_name,
+            email: this.email,
+            phone_number: this.phone_number,
             type_id: this.type_id,
             location_id: this.location_id,
             description: this.description,
@@ -127,6 +158,9 @@ export class Hazard implements IHazardData {
             statusEn: row.STATUS_EN as 'Sent' | 'On it' | 'Solved' | 'Rejected',
             statusMn: row.STATUS_MN as 'Илгээгдсэн' | 'Ажиллаж байна' | 'Шийдэгдсэн' | 'Татгалзсан',
             user_id: row.USER_ID,
+            user_name: row.USER_NAME,
+            email: row.EMAIL,
+            phone_number: row.PHONE_NUMBER,
             type_id: row.TYPE_ID,
             location_id: row.LOCATION_ID,
             description: row.DESCRIPTION,
@@ -141,6 +175,9 @@ export class Hazard implements IHazardData {
             statusEn: 'Sent',
             statusMn: 'Илгээгдсэн',
             user_id: request.user_id ?? null,
+            user_name: request.user_name ?? null,
+            email: request.email ?? null,
+            phone_number: request.phone_number ?? null,
             type_id: request.type_id,
             location_id: request.location_id,
             description: request.description,

@@ -6,6 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.dbManager = exports.DatabaseManager = void 0;
 const oracledb_1 = __importDefault(require("oracledb"));
 const db_1 = require("./src/config/db");
+process.env.NLS_LANG = 'AMERICAN_AMERICA.AL32UTF8';
+process.env.NLS_NCHAR = 'AL32UTF8';
 class DatabaseManager {
     constructor() {
         this.pool = null;
@@ -19,6 +21,17 @@ class DatabaseManager {
     }
     async initialize() {
         try {
+            oracledb_1.default.fetchAsString = [oracledb_1.default.CLOB];
+            oracledb_1.default.fetchAsBuffer = [oracledb_1.default.BLOB];
+            oracledb_1.default.stmtCacheSize = 40;
+            try {
+                oracledb_1.default.initOracleClient({
+                    libDir: undefined,
+                });
+            }
+            catch (err) {
+                console.log('Oracle client already initialized or using Thin mode');
+            }
             this.pool = await oracledb_1.default.createPool({
                 user: this.config.user,
                 password: this.config.password,
@@ -42,12 +55,29 @@ class DatabaseManager {
         let connection;
         try {
             connection = await this.pool.getConnection();
+            try {
+                await connection.execute(`ALTER SESSION SET NLS_LANG='AMERICAN_AMERICA.AL32UTF8'`);
+            }
+            catch (err) {
+                console.warn('Warning: Could not set session NLS_LANG:', err);
+            }
+            const processedBinds = binds.map(bind => {
+                if (typeof bind === 'string') {
+                    return {
+                        val: bind,
+                        type: oracledb_1.default.STRING,
+                        maxSize: bind.length * 4
+                    };
+                }
+                return bind;
+            });
             const defaultOptions = {
                 outFormat: oracledb_1.default.OUT_FORMAT_OBJECT,
                 autoCommit: true,
+                fetchInfo: {},
                 ...options
             };
-            const result = await connection.execute(sql, binds, defaultOptions);
+            const result = await connection.execute(sql, processedBinds, defaultOptions);
             return result;
         }
         catch (error) {

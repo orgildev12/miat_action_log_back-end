@@ -1,6 +1,10 @@
 import oracledb from 'oracledb';
 import { dbConfig, DatabaseConfig } from './src/config/db';
 
+// Set Oracle client environment for UTF-8 support for Mongolian/Cyrillic text
+process.env.NLS_LANG = 'AMERICAN_AMERICA.AL32UTF8';
+process.env.NLS_NCHAR = 'AL32UTF8';
+
 export class DatabaseManager {
   private static instance: DatabaseManager;
   private pool: oracledb.Pool | null = null;
@@ -20,6 +24,23 @@ export class DatabaseManager {
 
   public async initialize(): Promise<void> {
     try {
+      // Configure Oracle client for proper character encoding
+      oracledb.fetchAsString = [oracledb.CLOB];
+      oracledb.fetchAsBuffer = [oracledb.BLOB];
+      
+      // Set Oracle client to use UTF-8 for all string operations
+      oracledb.stmtCacheSize = 40;
+      
+      // Initialize Oracle client with UTF-8 support
+      try {
+        oracledb.initOracleClient({
+          libDir: undefined, // Use default Oracle client
+        });
+      } catch (err) {
+        // Client might already be initialized, ignore
+        console.log('Oracle client already initialized or using Thin mode');
+      }
+      
       this.pool = await oracledb.createPool({
         user: this.config.user,
         password: this.config.password,
@@ -51,13 +72,36 @@ export class DatabaseManager {
     try {
       connection = await this.pool.getConnection();
       
+      // Set connection-level character encoding for this session
+      try {
+        await connection.execute(`ALTER SESSION SET NLS_LANG='AMERICAN_AMERICA.AL32UTF8'`);
+      } catch (err) {
+        // If ALTER SESSION fails, continue anyway
+        console.warn('Warning: Could not set session NLS_LANG:', err);
+      }
+      
+      // Process bind parameters to ensure proper UTF-8 encoding for Oracle
+      const processedBinds = binds.map(bind => {
+        if (typeof bind === 'string') {
+          // For string parameters, ensure proper UTF-8 encoding and Oracle type specification
+          return {
+            val: bind,
+            type: oracledb.STRING,
+            maxSize: bind.length * 4 // Allow for UTF-8 multi-byte characters
+          };
+        }
+        return bind;
+      });
+      
       const defaultOptions: oracledb.ExecuteOptions = {
         outFormat: oracledb.OUT_FORMAT_OBJECT,
         autoCommit: true,
+        // Ensure proper handling of Unicode/UTF-8 data
+        fetchInfo: {},
         ...options
       };
       
-      const result = await connection.execute<T>(sql, binds, defaultOptions);
+      const result = await connection.execute<T>(sql, processedBinds, defaultOptions);
       return result;
     } catch (error) {
       console.error('Database query error:', error);

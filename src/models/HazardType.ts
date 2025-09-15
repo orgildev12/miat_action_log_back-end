@@ -45,14 +45,14 @@ export class HazardType implements IHazardTypeData {
     public short_code: string;
     public name_en: string;
     public name_mn: string;
-    public last_code?: number;
+    public last_index?: number;
 
     constructor(data: IHazardTypeData){
         this.id = data.id;
         this.short_code = data.short_code.toUpperCase();
         this.name_en = data.name_en;
         this.name_mn = data.name_mn;
-        this.last_code = data.last_index;
+        this.last_index = data.last_index;
     }
 
     validate(): { isValid: boolean; errors: string[] } {
@@ -72,7 +72,7 @@ export class HazardType implements IHazardTypeData {
             SHORT_CODE: this.short_code,
             NAME_EN: this.name_en,
             NAME_MN: this.name_mn,
-            LAST_INDEX: this.last_code
+            LAST_INDEX: this.last_index
         };
     }
 
@@ -82,7 +82,7 @@ export class HazardType implements IHazardTypeData {
             short_code: this.short_code,
             name_en: this.name_en,
             name_mn: this.name_mn,
-            last_index: this.last_code
+            last_index: this.last_index
         };
     }
 
@@ -92,7 +92,7 @@ export class HazardType implements IHazardTypeData {
             short_code: row.SHORT_CODE,
             name_en: row.NAME_EN,
             name_mn: row.NAME_MN,
-            last_index: row.LAST_CODE
+            last_index: row.LAST_INDEX
         });
     }
 

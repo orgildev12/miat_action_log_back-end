@@ -18,7 +18,7 @@ export class ResponseService {
 
   async getById(id: number): Promise<ResponseModel> {
     const result = await dbManager.executeQuery(
-      `SELECT * FROM RESPONSE WHERE ID = :1`,
+      `SELECT * FROM RESPONSE WHERE HAZARD_ID = :1`,
       [id]
     );
     if (!result.rows || result.rows.length === 0) {
@@ -41,7 +41,7 @@ export class ResponseService {
 
   async delete(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `DELETE FROM RESPONSE WHERE ID = :1`,
+      `DELETE FROM RESPONSE WHERE HAZARD_ID = :1`,
       [id],
       { autoCommit: true }
     );
@@ -52,7 +52,7 @@ export class ResponseService {
 // Update methods
   async startAnalysis(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `UPDATE RESPONSE SET IS_STARTED = 1, CURRENT_STATUS = 'Ажиллаж байгаа', DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      `UPDATE RESPONSE SET IS_STARTED = 1, CURRENT_STATUS = 'Ажиллаж байгаа', DATE_UPDATED = SYSDATE WHERE HAZARD_ID = :1`,
       [ id ],
       { autoCommit: true }
     );
@@ -64,7 +64,7 @@ export class ResponseService {
 
   async approveRequest(id: number, responseBody: string): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `UPDATE RESPONSE SET IS_APPROVED = 1, CURRENT_STATUS = 'Шийдэгдсэн', RESPONSE_BODY = :2, DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      `UPDATE RESPONSE SET IS_REQUEST_APPROVED = 1, CURRENT_STATUS = 'Шийдэгдсэн', RESPONSE_BODY = :2, DATE_UPDATED = SYSDATE WHERE HAZARD_ID = :1`,
       [ id, responseBody ],
       { autoCommit: true }
     );
@@ -77,8 +77,8 @@ export class ResponseService {
   async denyRequest(id: number, responseBody: string): Promise<boolean> {
     const result = await dbManager.executeQuery(
       `UPDATE RESPONSE 
-      SET IS_APPROVED = 0, CURRENT_STATUS = 'Татгалзсан', RESPONSE_BODY = :2, DATE_UPDATED = SYSDATE 
-      WHERE ID = :1`,
+      SET IS_REQUEST_APPROVED = 0, CURRENT_STATUS = 'Татгалзсан', RESPONSE_BODY = :2, DATE_UPDATED = SYSDATE 
+      WHERE HAZARD_ID = :1`,
       [ id, responseBody ],
       { autoCommit: true }
     );
@@ -93,7 +93,7 @@ export class ResponseService {
     const result = await dbManager.executeQuery(
       `UPDATE RESPONSE 
       SET IS_RESPONSE_FINISHED = 1, RESPONSE_FINISHED_DATE = SYSDATE 
-      WHERE ID = :1`,
+      WHERE HAZARD_ID = :1`,
       [ id ]
     );
     if ((result.rowsAffected || 0) === 0) {
@@ -104,7 +104,7 @@ export class ResponseService {
 
   async startChecking(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `UPDATE RESPONSE SET IS_CHECKING = 1, CURRENT_STATUS = 'Шалгаж байгаа', DATE_UPDATED = SYSDATE WHERE ID = :1`,
+      `UPDATE RESPONSE SET IS_CHECKING_RESPONSE = 1, CURRENT_STATUS = 'Шалгаж байгаа', DATE_UPDATED = SYSDATE WHERE HAZARD_ID = :1`,
       [ id ],
       { autoCommit: true }
     );
@@ -119,7 +119,7 @@ export class ResponseService {
     const result = await dbManager.executeQuery(
       `UPDATE RESPONSE 
       SET IS_RESPONSE_CONFIRMED = 1, CURRENT_STATUS = 'Зөвшөөрсөн', DATE_UPDATED = SYSDATE 
-      WHERE ID = :1`,
+      WHERE HAZARD_ID = :1`,
       [ id ],
       { autoCommit: true }
     );
@@ -133,8 +133,8 @@ export class ResponseService {
   async denyResponse(id: number, reasonToDeny: string): Promise<boolean> {
     const result = await dbManager.executeQuery(
       `UPDATE RESPONSE 
-      SET IS_RESPONSE_FINISHED = 0, IS_RESPONSE_DENIED = 1, CURRENT_STATUS = 'Буцаасан', REASON_TO_DENY = :2 DATE_UPDATED = SYSDATE 
-      WHERE ID = :1`,
+      SET IS_RESPONSE_FINISHED = 0, IS_RESPONSE_DENIED = 1, CURRENT_STATUS = 'Буцаасан', REASON_TO_DENY = :2, DATE_UPDATED = SYSDATE 
+      WHERE HAZARD_ID = :1`,
       [ id, reasonToDeny ],
       { autoCommit: true }
     );
