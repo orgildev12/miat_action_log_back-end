@@ -7,6 +7,7 @@ import locationRoutes from './location/locationRoutes';
 import hazardTypeRoutes from './hazardType';
 import responseRoutes from './response';
 import userRoutes from './user';
+// import adminRoutes from './admin';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/api/locations', locationRoutes);
 router.use('/api/hazardType', hazardTypeRoutes);
 router.use('/api/response', responseRoutes);
 router.use('/api/users', userRoutes);
+// TODO: add admin route when it's ready
 
 export default router;

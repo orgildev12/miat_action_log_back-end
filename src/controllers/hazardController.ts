@@ -41,6 +41,7 @@ export class HazardController {
         res.json(mappedHazards);
     };
 
+    // add option, include (Private)
     // for admin
     getById = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
@@ -52,7 +53,7 @@ export class HazardController {
         res.status(200).json(hazard);
     };
 
-
+    // add option, include (Private)
     getAll = async (req: Request, res: Response): Promise<void> => {
         const hazards = await this.hazardService.getAll();
         res.json(hazards.map(lg => lg.toJSON()));

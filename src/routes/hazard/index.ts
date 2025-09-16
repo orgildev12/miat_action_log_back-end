@@ -1,19 +1,24 @@
 import { Router } from 'express';
-import { HazardController } from '../../controllers/HazardController';
-import { asyncHandler } from '../../middleware/errorHandler/asyncHandler'; 
+import { HazardController } from '../../controllers/hazardController';
+import { asyncHandler } from '../../middleware/errorHandler/asyncHandler';
 import { authMiddleware } from '../../middleware/auth';
 
 const router = Router();
 const hazardController = new HazardController();
-const verifyToken = authMiddleware.verifyToken;
+const { verifyToken, requireAdmin, requireSuperAdmin } = authMiddleware;
+
+// public
+router.post('/', verifyToken, asyncHandler(hazardController.create));
+
+// for user
+router.get('/byUserId/:userId', verifyToken, asyncHandler(hazardController.getByUserId));
 
 // for admin
-router.get('/', asyncHandler(hazardController.getAll));
-router.get('/:id', asyncHandler(hazardController.getById));
-router.delete('/:id', asyncHandler(hazardController.delete));
+router.get('/',       verifyToken, requireAdmin,      asyncHandler(hazardController.getAll));
+router.get('/:id',    verifyToken, requireAdmin,      asyncHandler(hazardController.getById));
+// TODO: implement include reference, private hazards options and make it separate route
 
-// for user 
-router.get('/byUserId/:userId', verifyToken, asyncHandler(hazardController.getByUserId));
-router.post('/', verifyToken, asyncHandler(hazardController.create));
+router.delete('/:id', verifyToken, requireSuperAdmin, asyncHandler(hazardController.delete));
+
 
 export default router;

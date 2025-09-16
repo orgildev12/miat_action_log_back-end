@@ -33,7 +33,8 @@ export class HazardService {
 
     return newHazard;
   }
-
+  // TODO: write inner join with hazard_type, location, location_group, response
+  // add include options, (include references, include private hazadrs)
   async getById(id: number): Promise<Hazard> {
     const result = await dbManager.executeQuery(
       `SELECT * FROM HAZARD WHERE ID = :1`,
@@ -57,6 +58,8 @@ export class HazardService {
     return [];
   }
 
+  // TODO: write inner join with hazard_type, location, location_group, response
+  // add include options, (include references, include private hazadrs)
   async getByUserId(userId: number): Promise<Hazard[]> {
     const result = await dbManager.executeQuery(
       `SELECT *

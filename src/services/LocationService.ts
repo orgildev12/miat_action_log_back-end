@@ -33,7 +33,8 @@ export class LocationService {
             location_group_id: newLocation.location_group_id
         });
     }
-
+    // TODO: write outer join with location_groups
+    // add option (inlude references)
     async getById(id: number): Promise<Location> {
         const result = await dbManager.executeQuery(
             `SELECT * FROM LOCATION WHERE ID = :1`, 
@@ -44,7 +45,8 @@ export class LocationService {
         }
         throw new NotFoundError(`Location with id: ${id} not found`);
     }
-
+    // TODO: write outer join with location_groups
+    // add option (inlude references)
     async getAll(): Promise<Location[]> {
         const result = await dbManager.executeQuery(
             `SELECT * FROM LOCATION ORDER BY NAME_EN`, 

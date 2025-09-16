@@ -1,15 +1,20 @@
 import { Router } from 'express';
 import { LocationController } from '../../controllers/LocationController';
 import { asyncHandler } from '../../middleware/errorHandler/asyncHandler';
+import { authMiddleware } from '../../middleware/auth';
 
 const router = Router();
 const locationController = new LocationController();
+const { verifyToken, requireSuperAdmin } = authMiddleware;
 
-// Clean routes with automatic error handling
-router.get('/', asyncHandler(locationController.getAll));
-router.post('/', asyncHandler(locationController.create));
+// public
+// TODO: implement include reference option and make it separate route
+router.get('/',    asyncHandler(locationController.getAll));
 router.get('/:id', asyncHandler(locationController.getById));
-router.put('/:id', asyncHandler(locationController.update));
-router.delete('/:id', asyncHandler(locationController.delete));
+
+// for admin
+router.post('/',      verifyToken, requireSuperAdmin, asyncHandler(locationController.create));
+router.put('/:id',    verifyToken, requireSuperAdmin, asyncHandler(locationController.update));
+router.delete('/:id', verifyToken, requireSuperAdmin, asyncHandler(locationController.delete));
 
 export default router;

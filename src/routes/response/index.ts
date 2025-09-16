@@ -1,21 +1,37 @@
 import { Router } from 'express';
 import { ResponseController } from '../../controllers/ResponseController';
 import { asyncHandler } from '../../middleware/errorHandler/asyncHandler'; 
+import { authMiddleware } from '../../middleware/auth';
 
 const router = Router();
 const responseController = new ResponseController();
+const { verifyToken, requireAdmin, requireResponseAdmin, requireAuditAdmin } = authMiddleware;
 
-router.get('/', asyncHandler(responseController.getAll));
-router.get('/:id', asyncHandler(responseController.getById));
+// for admin (public hazards)
+router.get('/',    requireAdmin, asyncHandler(responseController.getAll));
+router.get('/:id', requireAdmin, asyncHandler(responseController.getById));
 
-router.put('/:id/start-analysis', asyncHandler(responseController.startAnalysis));
-router.put('/:id/approve-request', asyncHandler(responseController.approveRequest));
-router.put('/:id/deny-request', asyncHandler(responseController.denyRequest));
-router.put('/:id/finish-analysis', asyncHandler(responseController.finishAnalysis));
-router.put('/:id/start-checking', asyncHandler(responseController.startChecking));
-router.put('/:id/confirm-response', asyncHandler(responseController.confirmResponse));
-router.put('/:id/deny-response', asyncHandler(responseController.denyResponse));
+// for response admin (public hazards)
+router.put('/:id/start-analysis',  verifyToken, requireResponseAdmin, asyncHandler(responseController.startAnalysis));
+router.put('/:id/response-body',   verifyToken, requireResponseAdmin, asyncHandler(responseController.updateResponseBody));
+router.put('/:id/approve-request', verifyToken, requireResponseAdmin, asyncHandler(responseController.approveRequest));
+router.put('/:id/deny-request',    verifyToken, requireResponseAdmin, asyncHandler(responseController.denyRequest));
+router.put('/:id/finish-analysis', verifyToken, requireResponseAdmin, asyncHandler(responseController.finishAnalysis));
 
-// Бусад үйлдэл database дээр trigger-ээр зохицуулагдана.
+// for audit admin (public hazards)
+router.put('/:id/start-checking',   verifyToken, requireAuditAdmin, asyncHandler(responseController.startChecking));
+router.put('/:id/confirm-response', verifyToken, requireAuditAdmin, asyncHandler(responseController.confirmResponse));
+router.put('/:id/deny-response',    verifyToken, requireAuditAdmin, asyncHandler(responseController.denyResponse));
+
+// TODO: add routes for special admin
+
+
+
+
+
+
+
+
+// Create, delete үйлдэл database дээр trigger-ээр зохицуулагдана.
 
 export default router;
