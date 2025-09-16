@@ -4,10 +4,10 @@ import { ResponseModel } from '../models/Response';
 
 export class ResponseService {
   
-  async getByIdByUser(id: number): Promise<ResponseModel> {
+  async getByIdForUser(id: number): Promise<ResponseModel> {
     const result = await dbManager.executeQuery(
       `SELECT HAZARD_ID, IS_STARTED, RESPONSE_BODY, IS_APPROVED, IS_CONFIRMED, DATE_UPDATED 
-      FROM RESPONSE WHERE ID = :1`,
+      FROM RESPONSE WHERE HAZARED_ID = :1`,
       [id]
     );
     if (!result.rows || result.rows.length === 0) {
@@ -60,6 +60,16 @@ export class ResponseService {
       return false;
     }
     return true;
+  }
+
+  async updateResponseBody(id: number, responseBody: string): Promise<boolean> {
+    const result = await dbManager.executeQuery(
+      `UPDATE RESPONSE SET RESPONSE_BODY = :2, DATE_UPDATED = SYSDATE WHERE HAZARD_ID = :1`,
+      [ id, responseBody ],
+      { autoCommit: true }
+    );
+    const isAppected = (result.rowsAffected || 0) > 0
+    return isAppected
   }
 
   async approveRequest(id: number, responseBody: string): Promise<boolean> {

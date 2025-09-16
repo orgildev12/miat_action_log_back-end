@@ -21,6 +21,15 @@ export class NotFoundError extends Error {
   }
 }
 
+export class AuthError extends Error {
+  public status = 401;
+  constructor(message: string = 'Authentication required') {
+    super(message);
+    Object.setPrototypeOf(this, AuthError.prototype);
+    this.name = 'AuthError';
+  }
+}
+
 export class ForbiddenError extends Error {
   public status = 403;
   constructor(message: string = 'Access denied') {

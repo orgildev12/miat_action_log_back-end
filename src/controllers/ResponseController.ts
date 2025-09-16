@@ -6,19 +6,41 @@ import { HazardService } from '../services/HazardService';
 
 export class ResponseController {
     private responseService = new ResponseService();
+    private hazardService = new HazardService();
 
+    // for users
+    getByIdForUser = async (req: Request, res: Response): Promise<void> => {
+        const hazardId = Number(req.params.hazardId);
+        const userIdFromToken = req.user?.id;
+        const hazard = await this.hazardService.getById(hazardId);
+        if(hazard.user_id !== userIdFromToken){
+            throw new ForbiddenError('Access denied');
+        }
+
+        const response = await this.responseService.getByIdForUser(hazardId)
+        if(response.isResponseConfirmed === 0){
+            // Хэрэв response баталгаажаагүй бол response_body-ийг явуулах шаардлагагүй.
+            res.status(200).json({...response, response_body: null});
+        }
+
+        res.status(200).json(response);
+    }
+
+
+    // for admins
     getById = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
         const response = await this.responseService.getById(id);
         res.status(200).json(response);
     };
 
-
     getAll = async (req: Request, res: Response): Promise<void> => {
         const responses = await this.responseService.getAll();
         res.json(responses.map(lg => lg.toJSON()));
     };
 
+
+    // for response admin
     startAnalysis = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
         await this.responseService.getById(id);
@@ -27,22 +49,35 @@ export class ResponseController {
         if(!isAppected){
             throw new DatabaseUnavailableError();
         }
-        res.status(200).json('response analysis started successfully')
+        res.status(200).json('analysis started successfully')
     };
 
+    updateResponseBody = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const responseBody = req.body.response_body
+        const response = await this.responseService.getById(id);
+        if(response.isStarted !== 1){
+            throw new ConflictError(`response analysis not started yet`);
+        }
+        const isAppected = await this.responseService.updateResponseBody(id, responseBody);
+        if(!isAppected){
+            throw new DatabaseUnavailableError();
+        }
+        res.status(200).json('response body updated successfully')
+    }
 
     approveRequest = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
         const response = await this.responseService.getById(id);
         const responseBody = req.body.response_body
         if(response.isStarted !== 1){
-            throw new ConflictError(`response analysis not started yet`);
+            throw new ConflictError(`request analysis not started yet`);
         }
         const isAppected = await this.responseService.approveRequest(id, responseBody);
         if(!isAppected){
             throw new DatabaseUnavailableError();
         }
-        res.status(200).json('response request approved successfully')
+        res.status(200).json('request approved successfully')
     };
 
 
@@ -51,13 +86,13 @@ export class ResponseController {
         const response = await this.responseService.getById(id);
         const responseBody = req.body.response_body
         if(response.isStarted !== 1){
-            throw new ConflictError(`response analysis not started yet`);
+            throw new ConflictError(`request analysis not started yet`);
         }
         const isAppected = await this.responseService.denyRequest(id, responseBody);
         if(!isAppected){
             throw new DatabaseUnavailableError();
         }
-        res.status(200).json('response request denied successfully')
+        res.status(200).json('request denied successfully')
     };
 
 
@@ -67,6 +102,12 @@ export class ResponseController {
         if(response.isRequestApproved === 0){
             throw new ConflictError(`request not approved or denied yet`);
         }
+
+        const bodyLength = response.responseBody?.trim().length || 0
+        if(bodyLength < 20){
+            throw new ConflictError(`response body too short`);
+        }
+
         const isAppected = await this.responseService.finishAnalysis(id);
         if(!isAppected){
             throw new DatabaseUnavailableError();
@@ -74,7 +115,7 @@ export class ResponseController {
         res.status(200).json('response checking started successfully')
     };
 
-
+    // for audit admin
     startChecking = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
         const response = await this.responseService.getById(id);

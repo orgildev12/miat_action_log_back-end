@@ -57,6 +57,20 @@ export class HazardService {
     return [];
   }
 
+  async getByUserId(userId: number): Promise<Hazard[]> {
+    const result = await dbManager.executeQuery(
+      `SELECT *
+       FROM HAZARD
+       WHERE USER_ID = :1
+       ORDER BY DATE_CREATED DESC`,
+      [userId]
+    );
+    if (result.rows) {
+      return result.rows.map(row => Hazard.fromDatabase(row));
+    }
+    return [];
+  }
+
   async delete(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
       `DELETE FROM HAZARD WHERE ID = :1`,

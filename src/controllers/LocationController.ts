@@ -6,6 +6,13 @@ import { NotFoundError } from '../middleware/errorHandler/errorTypes';
 export class LocationController {
     private locationService = new LocationService();
 
+    // public
+    getAll = async (req: Request, res: Response): Promise<void> => {
+        const locations = await this.locationService.getAll();
+        res.json(locations.map(lg => lg.toJSON()));
+    };
+
+    // admin
     create = async (req: Request, res: Response): Promise<void> => {
         const requestData: typeof Location.modelFor.createRequest = req.body;
         const createdLocation = await this.locationService.create(requestData);
@@ -20,11 +27,6 @@ export class LocationController {
             throw new NotFoundError(`Location group with id: ${id} not found`);
         }
         res.status(200).json(locationGroup);
-    };
-
-    getAll = async (req: Request, res: Response): Promise<void> => {
-        const locations = await this.locationService.getAll();
-        res.json(locations.map(lg => lg.toJSON()));
     };
 
     update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

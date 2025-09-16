@@ -6,6 +6,13 @@ import { NotFoundError } from '../middleware/errorHandler/errorTypes';
 export class HazardTypeController {
     private hazardTypeService = new HazardTypeService();
 
+    // public
+    getAll = async (req: Request, res: Response): Promise<void> => {
+        const hazardTypes = await this.hazardTypeService.getAll();
+        res.json(hazardTypes.map(lg => lg.toJSON()));
+    };
+
+    // admin
     create = async (req: Request, res: Response): Promise<void> => {
         const requestData: typeof HazardType.modelFor.createRequest = req.body;
         const createdHazardType = await this.hazardTypeService.create(requestData);
@@ -20,11 +27,6 @@ export class HazardTypeController {
             throw new NotFoundError(`Hazard type with id: ${id} not found`);
         }
         res.status(200).json(hazardType);
-    };
-
-    getAll = async (req: Request, res: Response): Promise<void> => {
-        const hazardTypes = await this.hazardTypeService.getAll();
-        res.json(hazardTypes.map(lg => lg.toJSON()));
     };
 
     update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
