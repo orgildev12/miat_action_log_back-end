@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserService } from '../services/UserService';
 import { AuthError, ForbiddenError } from '../middleware/errorHandler/errorTypes';
-import { AdminService } from '../services/adminService';
+import { AdminService } from '../services/AdminService';
 
 // Extend Express Request type to include user
 declare global {
@@ -76,9 +76,10 @@ export class AuthMiddleware {
 };
 
 
-    requireAdmin = this.allowRole(['admin', 'response-admin', 'audit-admin', 'special-admin', 'super-admin']);
-    requireResponseAdmin = this.allowRole(['response-admin', 'super-admin']);
-    requireAuditAdmin = this.allowRole(['audit-admin', 'super-admin']);
+    requireAdmin = this.allowRole(['admin', 'response-admin', 'audit-admin','task-admin', 'special-admin', 'super-admin']);
+    requireResponseAdmin = this.allowRole(['response-admin', 'task-admin', 'super-admin']);
+    requireAuditAdmin = this.allowRole(['audit-admin', 'task-admin', 'super-admin']);
+    requireTaskAdmin = this.allowRole(['task-admin', 'super-admin']);
     requireSpecialAdmin = this.allowRole(['special-admin', 'super-admin']);
     requireSuperAdmin = this.allowRole(['super-admin']);
 }

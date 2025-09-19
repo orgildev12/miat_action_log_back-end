@@ -3,6 +3,7 @@ import { HazardService } from '../services/HazardService';
 import { Hazard } from '../models/Hazard';
 import { ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError } from '../middleware/errorHandler/errorTypes';
 import { map } from 'zod';
+import is from 'zod/v4/locales/is.cjs';
 
 export class HazardController {
     private hazardService = new HazardService();
@@ -41,11 +42,15 @@ export class HazardController {
         res.json(mappedHazards);
     };
 
-    // add option, include (Private)
     // for admin
     getById = async (req: Request, res: Response): Promise<void> => {
+        const includeRefString = req.query.includeRef; //from route /hazard/:id?includeRef=true|false
+        const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
+        const inludePrivateString = req.query.includeRef; //from route /hazard/:id?includeRef=true|false
+        const isIncludePrivate = inludePrivateString === undefined ? true : inludePrivateString === 'true';
+
         const id = Number(req.params.id);
-        const hazard = await this.hazardService.getById(id);
+        const hazard = await this.hazardService.getById(id, isIncludeRef, isIncludePrivate);
 
         if(!hazard){
             throw new NotFoundError(`hazard not found`);
@@ -53,9 +58,13 @@ export class HazardController {
         res.status(200).json(hazard);
     };
 
-    // add option, include (Private)
     getAll = async (req: Request, res: Response): Promise<void> => {
-        const hazards = await this.hazardService.getAll();
+        const includeRefString = req.query.includeRef; //from route /hazard?includeRef=true|false
+        const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
+        const inludePrivateString = req.query.includeRef; //from route /hazard?includeRef=true|false
+        const isIncludePrivate = inludePrivateString === undefined ? true : inludePrivateString === 'true';
+
+        const hazards = await this.hazardService.getAll(isIncludeRef, isIncludePrivate);
         res.json(hazards.map(lg => lg.toJSON()));
     };
 

@@ -8,9 +8,13 @@ const locationController = new LocationController();
 const { verifyToken, requireSuperAdmin } = authMiddleware;
 
 // public
-// TODO: implement include reference option and make it separate route
+
 router.get('/',    asyncHandler(locationController.getAll));
+// '/includeRef=true'
+
 router.get('/:id', asyncHandler(locationController.getById));
+// '/1?includeRef=true'
+
 
 // for admin
 router.post('/',      verifyToken, requireSuperAdmin, asyncHandler(locationController.create));

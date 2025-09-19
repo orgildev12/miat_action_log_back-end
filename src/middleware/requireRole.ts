@@ -1,4 +1,4 @@
-import { AdminService } from "../services/adminService";
+import { AdminService } from "../services/AdminService";
 import { AuthError, ForbiddenError } from "./errorHandler/errorTypes";
 import { Request, Response, NextFunction } from "express";
 

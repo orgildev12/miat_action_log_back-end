@@ -33,26 +33,46 @@ export class LocationService {
             location_group_id: newLocation.location_group_id
         });
     }
-    // TODO: write outer join with location_groups
-    // add option (inlude references)
-    async getById(id: number): Promise<Location> {
-        const result = await dbManager.executeQuery(
-            `SELECT * FROM LOCATION WHERE ID = :1`, 
-            [id]
-        );
+
+    async getById(id: number, includeReference: boolean = true): Promise<Location> {
+        let result;
+        if (!includeReference) {
+            result = await dbManager.executeQuery(
+                `SELECT * FROM LOCATION WHERE ID = :1`,
+                [id]
+            );
+        } else {
+            result = await dbManager.executeQuery(
+                `SELECT l.*, lg.NAME_EN AS GROUP_NAME_EN, lg.NAME_MN AS GROUP_NAME_MN
+                FROM LOCATION l
+                LEFT OUTER JOIN LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
+                WHERE l.ID = :1`,
+                [id]
+            );
+        }
         if (result.rows && result.rows.length > 0) {
             return Location.fromDatabase(result.rows[0]);
         }
         throw new NotFoundError(`Location with id: ${id} not found`);
     }
-    // TODO: write outer join with location_groups
-    // add option (inlude references)
-    async getAll(): Promise<Location[]> {
-        const result = await dbManager.executeQuery(
-            `SELECT * FROM LOCATION ORDER BY NAME_EN`, 
-            []
-        );
 
+    
+    async getAll(includeReference: boolean = true): Promise<Location[]> {
+        let result;
+        if (!includeReference) {
+            result = await dbManager.executeQuery(
+                `SELECT * FROM LOCATION ORDER BY NAME_EN`,
+                []
+            );
+        } else {
+            result = await dbManager.executeQuery(
+                `SELECT l.*, lg.NAME_EN AS GROUP_NAME_EN, lg.NAME_MN AS GROUP_NAME_MN
+                 FROM LOCATION l
+                 LEFT OUTER JOIN LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
+                 ORDER BY l.NAME_EN`,
+                []
+            );
+        }
         if (result.rows) {
             return result.rows.map(row => Location.fromDatabase(row));
         }

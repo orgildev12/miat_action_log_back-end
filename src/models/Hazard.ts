@@ -23,7 +23,6 @@ const HazardSchema = z.object({
         .min(1, 'Solution is required')
         .max(1000, 'Solution must be 1000 characters or less')
         .trim(),
-    is_private: z.number().int().min(0).max(1, 'Is private must be 0 or 1').default(0), // CHECK (is_private IN (0,1))
     date_created: z.date().optional(), // Default SYSDATE
 }).refine((data) => {
     // If user_id exists, other identification fields must be null
@@ -50,7 +49,6 @@ export class Hazard implements IHazardData {
             location_id: number;
             description: string;
             solution: string;
-            is_private: number; // 0 or 1, defaults to 0
         },
         fetchData: {} as {
             ID?: number;
@@ -65,7 +63,6 @@ export class Hazard implements IHazardData {
             LOCATION_ID: number;
             DESCRIPTION: string;
             SOLUTION?: string;
-            IS_PRIVATE: number;
             DATE_CREATED?: Date;
         }
     };
@@ -82,8 +79,16 @@ export class Hazard implements IHazardData {
     public location_id: number;
     public description: string;
     public solution: string;
-    public is_private: number;
     public date_created?: Date;
+    // Added for joined columns
+    public type_name_en?: string | null;
+    public type_name_mn?: string | null;
+    public location_name_en?: string | null;
+    public location_name_mn?: string | null;
+    public isconfirmed?: number | null;
+    public response_body?: string | null;
+    public is_private?: number;
+    public date_updated?: Date | null;
 
     constructor(data: IHazardData) {
         this.id = data.id;
@@ -98,7 +103,6 @@ export class Hazard implements IHazardData {
         this.location_id = data.location_id;
         this.description = data.description;
         this.solution = data.solution;
-        this.is_private = data.is_private || 0;
         this.date_created = data.date_created;
     }
 
@@ -127,7 +131,6 @@ export class Hazard implements IHazardData {
             LOCATION_ID: this.location_id,
             DESCRIPTION: this.description,
             SOLUTION: this.solution,
-            IS_PRIVATE: this.is_private,
             DATE_CREATED: this.date_created,
         };
     }
@@ -146,13 +149,12 @@ export class Hazard implements IHazardData {
             location_id: this.location_id,
             description: this.description,
             solution: this.solution,
-            is_private: this.is_private,
             date_created: this.date_created,
         };
     }
 
     static fromDatabase(row: any): Hazard {
-        return new Hazard({
+        return Object.assign(new Hazard({
             id: row.ID,
             code: row.CODE,
             statusEn: row.STATUS_EN as 'Sent' | 'On it' | 'Solved' | 'Rejected',
@@ -165,8 +167,16 @@ export class Hazard implements IHazardData {
             location_id: row.LOCATION_ID,
             description: row.DESCRIPTION,
             solution: row.SOLUTION,
-            is_private: row.IS_PRIVATE,
             date_created: row.DATE_CREATED,
+        }), {
+            type_name_en: row.TYPE_NAME_EN ?? null,
+            type_name_mn: row.TYPE_NAME_MN ?? null,
+            is_private: row.IS_PRIVATE ?? null,
+            location_name_en: row.LOCATION_NAME_EN ?? null,
+            location_name_mn: row.LOCATION_NAME_MN ?? null,
+            isconfirmed: row.ISCONFIRMED ?? null,
+            response_body: row.RESPONSE_BODY ?? null,
+            date_updated: row.DATE_UPDATED ?? null
         });
     }
 
@@ -182,7 +192,6 @@ export class Hazard implements IHazardData {
             location_id: request.location_id,
             description: request.description,
             solution: request.solution,
-            is_private: request.is_private || 0,
         });
     }
 }

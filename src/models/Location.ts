@@ -10,7 +10,9 @@ const LocationSchema = z.object({
         .min(1, 'Mongolian name is required')
         .max(50, 'Mongolian name must be 50 characters or less')
         .trim(),
-    location_group_id: z.number().int().positive('Location group ID must be a positive integer').nullable().optional()
+    location_group_id: z.number().int().positive('Location group ID must be a positive integer').nullable().optional(),
+    group_name_en: z.string().max(50).nullable().optional(),
+    group_name_mn: z.string().max(50).nullable().optional()
 });
 
 type ILocationData = z.infer<typeof LocationSchema>;
@@ -39,12 +41,16 @@ export class Location implements ILocationData {
     public name_en: string;
     public name_mn: string;
     public location_group_id: number | null;
+    public group_name_en?: string | null;
+    public group_name_mn?: string | null;
 
-    constructor(data: ILocationData){
+    constructor(data: ILocationData & { group_name_en?: string | null, group_name_mn?: string | null }){
         this.id = data.id;
         this.name_en = data.name_en;
         this.name_mn = data.name_mn;
         this.location_group_id = data.location_group_id ?? null;
+        this.group_name_en = data.group_name_en ?? null;
+        this.group_name_mn = data.group_name_mn ?? null;
     }
 
     validate(): { isValid: boolean; errors: string[] } {
@@ -72,17 +78,22 @@ export class Location implements ILocationData {
             id: this.id,
             name_en: this.name_en,
             name_mn: this.name_mn,
-            location_group_id: this.location_group_id
+            location_group_id: this.location_group_id,
+            group_name_en: this.group_name_en,
+            group_name_mn: this.group_name_mn
         };
     }
 
     static fromDatabase(row: any): Location {
-        return new Location({
+        const loc = new Location({
             id: row.ID,
             name_en: row.NAME_EN,
             name_mn: row.NAME_MN,
             location_group_id: row.LOCATION_GROUP_ID
         });
+        loc.group_name_en = row.GROUP_NAME_EN ?? null;
+        loc.group_name_mn = row.GROUP_NAME_MN ?? null;
+        return loc;
     }
 
     static fromRequestData(request: typeof Location.modelFor.createRequest): Location {

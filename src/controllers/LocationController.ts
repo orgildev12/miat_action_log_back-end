@@ -8,8 +8,23 @@ export class LocationController {
 
     // public
     getAll = async (req: Request, res: Response): Promise<void> => {
-        const locations = await this.locationService.getAll();
+        const includeRefString = req.query.includeRef; //from route /locations?includeRef=true|false
+        const includeRefBoolean = includeRefString === undefined ? true : includeRefString === 'true';
+        const locations = await this.locationService.getAll(includeRefBoolean);
         res.json(locations.map(lg => lg.toJSON()));
+    };
+
+    getById = async (req: Request, res: Response): Promise<void> => {
+        const includeRefString = req.query.includeRef; //from route /locations?includeRef=true|false
+        const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
+
+        const id = Number(req.params.id);
+        const locationGroup = await this.locationService.getById(id, isIncludeRef);
+
+        if(!locationGroup){
+            throw new NotFoundError(`Location group with id: ${id} not found`);
+        }
+        res.status(200).json(locationGroup);
     };
 
     // admin
@@ -19,15 +34,6 @@ export class LocationController {
         res.status(201).json(createdLocation);
     };
 
-    getById = async (req: Request, res: Response): Promise<void> => {
-        const id = Number(req.params.id);
-        const locationGroup = await this.locationService.getById(id);
-
-        if(!locationGroup){
-            throw new NotFoundError(`Location group with id: ${id} not found`);
-        }
-        res.status(200).json(locationGroup);
-    };
 
     update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const id = Number(req.params.id);

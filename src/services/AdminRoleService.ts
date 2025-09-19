@@ -1,11 +1,11 @@
 import { dbManager } from '../../database';
-import { Admin } from '../models/Admin';
+import { AdminRole } from '../models/AdminRole';
 import { ValidationError, NotFoundError, DatabaseUnavailableError } from '../middleware/errorHandler/errorTypes';
 
 export class AdminService {
 
-    async create(requestData: typeof Admin.modelFor.createRequest): Promise<Admin> {
-        const promptValues = Admin.fromRequestData(requestData);
+    async create(requestData: typeof AdminRole.modelFor.createRequest): Promise<AdminRole> {
+        const promptValues = AdminRole.fromRequestData(requestData);
         const validation = promptValues.validate();
         if (!validation.isValid) {
             throw new ValidationError(validation.errors);
@@ -13,11 +13,10 @@ export class AdminService {
 
         const dbData = promptValues.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO ADMIN (USER_ID, ROLE_ID)
-             VALUES (:1, :2)`,
+            `INSERT INTO ADMINROLE (ROLE_NAME)
+             VALUES (:1)`,
             [
-                dbData.USER_ID,
-                dbData.ROLE_ID,
+                dbData.ROLE_NAME,
             ],
             { autoCommit: true }
         );
@@ -25,39 +24,35 @@ export class AdminService {
             throw new DatabaseUnavailableError('Failed to add admin, please try again later');
         }
         // INSERT doesn't return rows; return the constructed model or re-fetch
-        return new Admin({
-            user_id: promptValues.user_id,
-            role_id: promptValues.role_id,
+        return new AdminRole({
+            role_name: promptValues.role_name,
         });
     }
 
-    async getById(id: number): Promise<Admin> {
+    async getById(id: number): Promise<AdminRole> {
         const result = await dbManager.executeQuery(
-            `SELECT a.*, r.ROLE_NAME FROM ADMIN a
-            INNER JOIN ADMINROLE r ON a.ROLE_ID = r.ID
-            WHERE a.ID = :1`,
+            `SELECT * FROM ADMINROLE WHERE ID = :1`,
             [id]
         );
         if (result.rows && result.rows.length > 0) {
-            return Admin.fromDatabase(result.rows[0]);
+            return AdminRole.fromDatabase(result.rows[0]);
         }
-        throw new NotFoundError(`Admin with ${id} not found`);
+        throw new NotFoundError(`AdminRole with ${id} not found`);
     }
 
-    async getAll(): Promise<Admin[]> {
+    async getAll(): Promise<AdminRole[]> {
         const result = await dbManager.executeQuery(
-            `SELECT a.*, r.ROLE_NAME FROM ADMIN a
-            INNER JOIN ADMINROLE r ON a.ROLE_ID = r.ID`,
+            `SELECT * FROM ADMINROLE WHERE ID = :1`,
             []
         );
 
         if (result.rows) {
-            return result.rows.map(row => Admin.fromDatabase(row));
+            return result.rows.map(row => AdminRole.fromDatabase(row));
         }
         return [];
     }
 
-    async updateRole(id: number, updateData: typeof Admin.modelFor.updateRequest): Promise<Admin> {
+    async updateRole(id: number, updateData: typeof AdminRole.modelFor.updateRequest): Promise<AdminRole> {
         const existingAdmin = await this.getById(id);
         existingAdmin.updateWith(updateData);
 
@@ -68,11 +63,11 @@ export class AdminService {
 
         const dbData = existingAdmin.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `UPDATE ADMIN SET ROLE_ID = :2,
+            `UPDATE ADMINROLE SET ROLE_ID = :2,
              WHERE ID = :1`,
             [
                 id,
-                dbData.ROLE_ID,
+                dbData.ROLE_NAME,
             ],
             { autoCommit: true }
         );
@@ -85,7 +80,7 @@ export class AdminService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM ADMIN WHERE ID = :1`,
+            `DELETE FROM ADMINROLE WHERE ID = :1`,
             [id],
             { autoCommit: true }
         );
