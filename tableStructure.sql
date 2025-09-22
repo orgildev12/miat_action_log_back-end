@@ -87,7 +87,6 @@ CREATE TABLE response (
 CREATE TABLE task_owners (
     hazard_id               NUMBER NOT NULL,
     admin_id                NUMBER NOT NULL,
-    is_auditor              NUMBER(1) DEFAULT 0 CHECK (is_response_admin IN (0,1)) NOT NULL,
     is_collaborator         NUMBER(1) DEFAULT 0 CHECK (is_collaborator IN (0,1)) NOT NULL,
     CONSTRAINT pk_task_owners PRIMARY KEY (hazard_id, admin_id),
     CONSTRAINT fk_task_owners_hazard FOREIGN KEY (hazard_id) REFERENCES hazard(id),

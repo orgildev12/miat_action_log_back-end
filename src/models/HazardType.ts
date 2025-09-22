@@ -14,6 +14,7 @@ const HazardTypeSchema = z.object({
         .min(1, 'Mongolian name is required')
         .max(100, 'Mongolian name must be 100 characters or less')
         .trim(),
+    isPrivate: z.number().int().min(0).max(1),
     last_index: z.number().int().positive().optional()
 });
 
@@ -26,17 +27,20 @@ export class HazardType implements IHazardTypeData {
             short_code: string;
             name_en: string;
             name_mn: string;
+            isPrivate: number;
         },
         updateRequest: {} as {
             short_code?: string;
             name_en?: string;
             name_mn?: string;
+            isPrivate?: number;
         },
         fetchData: {} as {
             ID?: number;
             SHORT_CODE: string;
             NAME_EN: string;
             NAME_MN: string;
+            IS_PRIVATE: number;
             LAST_INDEX?: number;
         }
     };
@@ -45,6 +49,7 @@ export class HazardType implements IHazardTypeData {
     public short_code: string;
     public name_en: string;
     public name_mn: string;
+    public isPrivate: number;
     public last_index?: number;
 
     constructor(data: IHazardTypeData){
@@ -52,6 +57,7 @@ export class HazardType implements IHazardTypeData {
         this.short_code = data.short_code.toUpperCase();
         this.name_en = data.name_en;
         this.name_mn = data.name_mn;
+        this.isPrivate = data.isPrivate;
         this.last_index = data.last_index;
     }
 
@@ -72,6 +78,7 @@ export class HazardType implements IHazardTypeData {
             SHORT_CODE: this.short_code,
             NAME_EN: this.name_en,
             NAME_MN: this.name_mn,
+            IS_PRIVATE: this.isPrivate,
             LAST_INDEX: this.last_index
         };
     }
@@ -82,6 +89,7 @@ export class HazardType implements IHazardTypeData {
             short_code: this.short_code,
             name_en: this.name_en,
             name_mn: this.name_mn,
+            isPrivate: this.isPrivate,
             last_index: this.last_index
         };
     }
@@ -92,6 +100,7 @@ export class HazardType implements IHazardTypeData {
             short_code: row.SHORT_CODE,
             name_en: row.NAME_EN,
             name_mn: row.NAME_MN,
+            isPrivate: row.IS_PRIVATE,
             last_index: row.LAST_INDEX
         });
     }
@@ -101,6 +110,7 @@ export class HazardType implements IHazardTypeData {
             short_code: request.short_code,
             name_en: request.name_en,
             name_mn: request.name_mn,
+            isPrivate: request.isPrivate,
         });
     }
 
@@ -108,5 +118,5 @@ export class HazardType implements IHazardTypeData {
         if (updateData.short_code !== undefined) this.short_code = updateData.short_code;
         if (updateData.name_en !== undefined) this.name_en = updateData.name_en;
         if (updateData.name_mn !== undefined) this.name_mn = updateData.name_mn;
-    }
+        if (updateData.isPrivate !== undefined) this.isPrivate = updateData.isPrivate;}
 }

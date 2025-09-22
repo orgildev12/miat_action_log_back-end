@@ -44,6 +44,19 @@ export class AdminService {
         throw new NotFoundError(`Admin with ${id} not found`);
     }
 
+    async getByUserId(id: number): Promise<Admin> {
+        const result = await dbManager.executeQuery(
+            `SELECT a.*, r.ROLE_NAME FROM ADMIN a
+            INNER JOIN ADMINROLE r ON a.ROLE_ID = r.ID
+            WHERE a.USER_ID = :1`,
+            [id]
+        );
+        if (result.rows && result.rows.length > 0) {
+            return Admin.fromDatabase(result.rows[0]);
+        }
+        throw new NotFoundError(`Admin with user_id: ${id} not found`);
+    }
+
     async getAll(): Promise<Admin[]> {
         const result = await dbManager.executeQuery(
             `SELECT a.*, r.ROLE_NAME FROM ADMIN a
@@ -90,5 +103,13 @@ export class AdminService {
             { autoCommit: true }
         );
         return (result.rowsAffected || 0) > 0;
+    }
+
+    async checkIsAdmin(userId: number): Promise<number | null> {
+        const result = await dbManager.executeQuery(
+            `SELECT ID FROM ADMIN WHERE USER_ID = :1`,
+            [userId]
+        );
+        return (result.rows && result.rows.length > 0) ? result.rows[0].ID : null;
     }
 }

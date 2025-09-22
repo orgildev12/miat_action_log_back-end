@@ -22,12 +22,14 @@ export class Admin implements IAdminData {
             ID?: number;
             USER_ID: number;
             ROLE_ID: number;
+            ROLE_NAME?: string;
         }
     };
 
     public id?: number;
     public user_id: number;
     public role_id: number;
+    public role_name?: string;
 
     constructor(data: IAdminData){
         this.id = data.id;
@@ -51,6 +53,7 @@ export class Admin implements IAdminData {
             ID: this.id,
             USER_ID: this.user_id,
             ROLE_ID: this.role_id,
+            ROLE_NAME: this.role_name
         };
     }
 

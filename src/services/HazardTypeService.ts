@@ -30,6 +30,7 @@ export class HazardTypeService {
             short_code: newHazardType.short_code,
             name_en: newHazardType.name_en,
             name_mn: newHazardType.name_mn,
+            isPrivate: newHazardType.isPrivate
         });
     }
 
@@ -68,12 +69,13 @@ export class HazardTypeService {
         const dbData = existingHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
             `UPDATE HAZARD_TYPE
-             SET SHORT_CODE = :1, NAME_EN = :2, NAME_MN = :3
+             SET SHORT_CODE = :1, NAME_EN = :2, NAME_MN = :3, IS_PRIVATE = :4
              WHERE ID = :4`,
             [
                 dbData.SHORT_CODE,
                 dbData.NAME_EN,
                 dbData.NAME_MN,
+                dbData.IS_PRIVATE,
                 id
             ],
             { autoCommit: true }

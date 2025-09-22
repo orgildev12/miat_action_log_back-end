@@ -11,6 +11,8 @@ declare global {
             user?: {
                 id: number;
                 username: string;
+                role_id?: number;
+                role_name?: string;
             };
         }
     }
@@ -23,7 +25,7 @@ export class AuthMiddleware {
     generateToken = (user: any): string => {
         const payload = {
             id: user.id,
-            username: user.username
+            username: user.username,
         };
 
         return jwt.sign(payload, this.JWT_SECRET, { 
@@ -39,7 +41,7 @@ export class AuthMiddleware {
         }
 
         const token = authHeader.substring(7); // Removing 'Bearer '
-
+        
         try {
             const decoded = jwt.verify(token, this.JWT_SECRET) as any;
             
@@ -56,6 +58,9 @@ export class AuthMiddleware {
 
     allowRole = (allowedRoles: string[]) => {
         return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+            if (!req.user || typeof req.user.id !== 'number') {
+                throw new ForbiddenError('Access denied');
+            }
             const userId = req.user.id;
             const admin = await this.adminService.getById(userId);
             if (!admin) {
@@ -63,14 +68,16 @@ export class AuthMiddleware {
             }
 
             const userRole = admin.role_name;
-            const isAllowed = allowedRoles.includes(userRole) //
-                || (userRole === 'super-admin');
+            if (typeof userRole !== 'string') {
+                throw new ForbiddenError('Access denied: invalid role');
+            }
+            const isAllowed = allowedRoles.includes(userRole) || userRole === 'super-admin';
 
             if (!isAllowed) {
                 throw new ForbiddenError('Access denied: insufficient permissions');
             }
-
-            req.user.role = userRole;
+            req.user.role_id = admin.role_id;
+            req.user.role_name = userRole;
             next();
         };
 };
@@ -81,6 +88,7 @@ export class AuthMiddleware {
     requireAuditAdmin = this.allowRole(['audit-admin', 'task-admin', 'super-admin']);
     requireTaskAdmin = this.allowRole(['task-admin', 'super-admin']);
     requireSpecialAdmin = this.allowRole(['special-admin', 'super-admin']);
+    requireTaskOrSpecialAdmin = this.allowRole(['task-admin', 'special-admin', 'super-admin']);
     requireSuperAdmin = this.allowRole(['super-admin']);
 }
 

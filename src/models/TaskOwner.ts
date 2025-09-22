@@ -16,14 +16,14 @@ export class TaskOwner implements ITaskOwnerData {
             is_collaborator: number;
         },
         updateRequest: {} as {
-            hazard_id: number;
-            admin_id: number;
-            is_collaborator: number;
+            hazard_id?: number;
+            admin_id?: number;
+            is_collaborator?: number;
         },
         fetchData: {} as {
             HAZARD_ID: number;
             ADMIN_ID: number;
-            IS_COLLABORATOR?: number;
+            IS_COLLABORATOR: number;
         }
     };
 

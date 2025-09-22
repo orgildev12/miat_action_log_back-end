@@ -78,7 +78,7 @@ export class HazardService {
 
   
   async getAll(
-    includeReference: boolean = false, 
+    includeReference: boolean = true, 
     includePrivateHazars: boolean = false
   ): Promise<Hazard[]> {
     let result;
@@ -98,7 +98,7 @@ export class HazardService {
     }
 
     result = await dbManager.executeQuery(
-      `SELECT h.*, 
+      `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED, 
         ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
         l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
         r.ISCONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
@@ -116,6 +116,28 @@ export class HazardService {
     }
     return [];
   }
+
+async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
+    const result = await dbManager.executeQuery(
+      `SELECT h.*, 
+        ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
+        l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
+        r.ISCONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
+      FROM HAZARD h
+      INNER JOIN HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+      INNER JOIN LOCATION l ON h.LOCATION_ID = l.ID
+      LEFT JOIN RESPONSE r ON h.ID = r.HAZARD_ID
+      INNER JOIN TASK_OWNERS towner ON h.ID = towner.HAZARD_ID
+      WHERE ht.IS_PRIVATE = 1 AND towner.ADMIN_ID = :1
+      ORDER BY h.DATE_CREATED DESC`,
+      [adminId]
+    );
+
+    if (result.rows) {
+      return result.rows.map(row => Hazard.fromDatabase(row));
+    }
+    return [];
+}
 
 
   async getByUserId(userId: number, includeReference: boolean = true): Promise<Hazard[]> {

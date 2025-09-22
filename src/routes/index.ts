@@ -3,11 +3,12 @@ import healthRoutes from './healthRoutes';
 import databaseRoutes from './databaseRoutes';
 import hazardRoutes from './hazard';
 import locationGroupRoutes from './locationGroup';
-import locationRoutes from './location/locationRoutes';
+import locationRoutes from './location';
 import hazardTypeRoutes from './hazardType';
 import responseRoutes from './response';
 import userRoutes from './user';
-// import adminRoutes from './admin';
+import taskOwnerRoutes from './taskOwners';
+import adminRoutes from './admin';
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.use('/api/locations', locationRoutes);
 router.use('/api/hazardType', hazardTypeRoutes);
 router.use('/api/response', responseRoutes);
 router.use('/api/users', userRoutes);
-// TODO: add admin route when it's ready
+router.use('/api/admin', adminRoutes);
+router.use('/api/taskOwners', taskOwnerRoutes)
 
 export default router;
