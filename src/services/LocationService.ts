@@ -13,7 +13,7 @@ export class LocationService {
 
         const dbData = newLocation.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO LOCATION (NAME_EN, NAME_MN, LOCATION_GROUP_ID)
+            `INSERT INTO ORGIL.LOCATION (NAME_EN, NAME_MN, LOCATION_GROUP_ID)
              VALUES (:1, :2, :3)`,
             [
                 dbData.NAME_EN,
@@ -38,14 +38,14 @@ export class LocationService {
         let result;
         if (!includeReference) {
             result = await dbManager.executeQuery(
-                `SELECT * FROM LOCATION WHERE ID = :1`,
+                `SELECT * FROM ORGIL.LOCATION WHERE ID = :1`,
                 [id]
             );
         } else {
             result = await dbManager.executeQuery(
                 `SELECT l.*, lg.NAME_EN AS GROUP_NAME_EN, lg.NAME_MN AS GROUP_NAME_MN
-                FROM LOCATION l
-                LEFT OUTER JOIN LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
+                FROM ORGIL.LOCATION l
+                LEFT OUTER JOIN ORGIL.LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
                 WHERE l.ID = :1`,
                 [id]
             );
@@ -61,14 +61,14 @@ export class LocationService {
         let result;
         if (!includeReference) {
             result = await dbManager.executeQuery(
-                `SELECT * FROM LOCATION ORDER BY NAME_EN`,
+                `SELECT * FROM ORGIL.LOCATION ORDER BY NAME_EN`,
                 []
             );
         } else {
             result = await dbManager.executeQuery(
                 `SELECT l.*, lg.NAME_EN AS GROUP_NAME_EN, lg.NAME_MN AS GROUP_NAME_MN
-                 FROM LOCATION l
-                 LEFT OUTER JOIN LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
+                 FROM ORGIL.LOCATION l
+                 LEFT OUTER JOIN ORGIL.LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
                  ORDER BY l.NAME_EN`,
                 []
             );
@@ -90,7 +90,7 @@ export class LocationService {
 
         const dbData = existingLocation.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `UPDATE LOCATION
+            `UPDATE ORGIL.LOCATION
              SET NAME_EN = :1, NAME_MN = :2, LOCATION_GROUP_ID = :3
              WHERE ID = :4`,
             [
@@ -110,7 +110,7 @@ export class LocationService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM LOCATION WHERE ID = :1`,
+            `DELETE FROM ORGIL.LOCATION WHERE ID = :1`,
             [id],
             { autoCommit: true }
         );

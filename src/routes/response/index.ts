@@ -19,15 +19,11 @@ router.put('/:id/deny-request',    verifyToken, requireResponseAdmin, asyncHandl
 router.put('/:id/finish-analysis', verifyToken, requireResponseAdmin, asyncHandler(responseController.finishAnalysis));
 
 // for audit admin (public hazards)
-router.put('/:id/start-checking',   verifyToken, requireAuditAdmin, asyncHandler(responseController.startChecking));
 router.put('/:id/confirm-response', verifyToken, requireAuditAdmin, asyncHandler(responseController.confirmResponse));
 router.put('/:id/deny-response',    verifyToken, requireAuditAdmin, asyncHandler(responseController.denyResponse));
 
-// for task admin
-router.put('/:id/assign-report',  verifyToken, requireTaskAdmin, asyncHandler(responseController.startAnalysis)); //public hazards
 
 // TODO: add routes for special admin
-router.put('/:id/assign-report',   verifyToken, requireTaskAdmin,     asyncHandler(responseController.startAnalysis)); //private hazards
 router.put('/:id/start-analysis',  verifyToken, requireResponseAdmin, asyncHandler(responseController.startAnalysis));
 router.put('/:id/response-body',   verifyToken, requireResponseAdmin, asyncHandler(responseController.updateResponseBody));
 router.put('/:id/approve-request', verifyToken, requireResponseAdmin, asyncHandler(responseController.approveRequest));

@@ -20,7 +20,9 @@ export class UserController {
             throw new AuthError('Username or password is incorrect');
         }
 
-        const isPasswordValid = await bcrypt.compare(requestData.password, result.passwordHash);
+        const crypto = require('crypto');
+        const passwordHash = crypto.createHash('md5').update(requestData.password).digest('hex');
+        const isPasswordValid = passwordHash === result.passwordHash;
         if (!isPasswordValid) {
             throw new AuthError('Username or password is incorrect');
         }

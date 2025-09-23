@@ -3,7 +3,7 @@ import { Admin } from '../models/Admin';
 import { ValidationError, NotFoundError, DatabaseUnavailableError } from '../middleware/errorHandler/errorTypes';
 
 export class AdminService {
-
+    private static readonly EMPLOYEES_TABLE = process.env.EMPLOYEES_TABLE;
     async create(requestData: typeof Admin.modelFor.createRequest): Promise<Admin> {
         const promptValues = Admin.fromRequestData(requestData);
         const validation = promptValues.validate();
@@ -13,7 +13,7 @@ export class AdminService {
 
         const dbData = promptValues.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO ADMIN (USER_ID, ROLE_ID)
+            `INSERT INTO ORGIL.ADMIN (USER_ID, ROLE_ID)
              VALUES (:1, :2)`,
             [
                 dbData.USER_ID,
@@ -33,8 +33,10 @@ export class AdminService {
 
     async getById(id: number): Promise<Admin> {
         const result = await dbManager.executeQuery(
-            `SELECT a.*, r.ROLE_NAME FROM ADMIN a
-            INNER JOIN ADMINROLE r ON a.ROLE_ID = r.ID
+            `SELECT a.*, r.ROLE_NAME, e.EMP_KEY AS USER_NAME 
+            FROM ORGIL.ADMIN a
+            INNER JOIN ORGIL.ADMIN_ROLE r ON a.ROLE_ID = r.ID
+            INNER JOIN ${AdminService.EMPLOYEES_TABLE} e ON a.USER_ID = e.EMP_ID
             WHERE a.ID = :1`,
             [id]
         );
@@ -46,8 +48,10 @@ export class AdminService {
 
     async getByUserId(id: number): Promise<Admin> {
         const result = await dbManager.executeQuery(
-            `SELECT a.*, r.ROLE_NAME FROM ADMIN a
-            INNER JOIN ADMINROLE r ON a.ROLE_ID = r.ID
+            `SELECT a.*, r.ROLE_NAME, e.EMP_KEY AS USER_NAME 
+            FROM ORGIL.ADMIN a
+            INNER JOIN ORGIL.ADMIN_ROLE r ON a.ROLE_ID = r.ID
+            INNER JOIN ${AdminService.EMPLOYEES_TABLE} e ON a.USER_ID = e.EMP_ID
             WHERE a.USER_ID = :1`,
             [id]
         );
@@ -59,8 +63,10 @@ export class AdminService {
 
     async getAll(): Promise<Admin[]> {
         const result = await dbManager.executeQuery(
-            `SELECT a.*, r.ROLE_NAME FROM ADMIN a
-            INNER JOIN ADMINROLE r ON a.ROLE_ID = r.ID`,
+            `SELECT a.*, r.ROLE_NAME, e.EMP_KEY AS USER_NAME
+            FROM ORGIL.ADMIN a
+            INNER JOIN ORGIL.ADMIN_ROLE r ON a.ROLE_ID = r.ID
+            INNER JOIN ${AdminService.EMPLOYEES_TABLE} e ON a.USER_ID = e.EMP_ID`,
             []
         );
 
@@ -81,7 +87,7 @@ export class AdminService {
 
         const dbData = existingAdmin.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `UPDATE ADMIN SET ROLE_ID = :2,
+            `UPDATE ORGIL.ADMIN SET ROLE_ID = :2
              WHERE ID = :1`,
             [
                 id,
@@ -98,7 +104,7 @@ export class AdminService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM ADMIN WHERE ID = :1`,
+            `DELETE FROM ORGIL.ADMIN WHERE ID = :1`,
             [id],
             { autoCommit: true }
         );
@@ -107,7 +113,7 @@ export class AdminService {
 
     async checkIsAdmin(userId: number): Promise<number | null> {
         const result = await dbManager.executeQuery(
-            `SELECT ID FROM ADMIN WHERE USER_ID = :1`,
+            `SELECT ID FROM ORGIL.ADMIN WHERE USER_ID = :1`,
             [userId]
         );
         return (result.rows && result.rows.length > 0) ? result.rows[0].ID : null;

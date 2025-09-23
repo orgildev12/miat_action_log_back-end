@@ -1,11 +1,9 @@
 import { Router } from 'express';
-import { AdminController } from '../../controllers/AdminController';
 import { AdminRoleController } from '../../controllers/AdmnRoleController';
 import { asyncHandler } from '../../middleware/errorHandler/asyncHandler';
 import { authMiddleware } from '../../middleware/auth';
 
 const router = Router();
-const adminController = new AdminController();
 const adminRoleController = new AdminRoleController();
 const { verifyToken, requireSuperAdmin, requireAdmin } = authMiddleware;
 
@@ -26,15 +24,12 @@ const { verifyToken, requireSuperAdmin, requireAdmin } = authMiddleware;
 // router.delete('/role/:id', verifyToken, requireSuperAdmin, asyncHandler(adminRoleController.delete));
 
 
+router.get('/:id',  asyncHandler(adminRoleController.getById));
+router.get('/',    asyncHandler(adminRoleController.getAll));
 
-// for all admins
-router.get('/',    asyncHandler(adminController.getAll));
-router.get('/:id', asyncHandler(adminController.getById));
 
-// for super-admin
-router.post('/',      asyncHandler(adminController.create));
-router.put('/:id',    asyncHandler(adminController.update));
-router.delete('/:id', asyncHandler(adminController.delete));
-
+router.post('/',    asyncHandler(adminRoleController.create));
+router.put('/:id',    asyncHandler(adminRoleController.update));
+router.delete('/:id', asyncHandler(adminRoleController.delete));
 
 export default router;

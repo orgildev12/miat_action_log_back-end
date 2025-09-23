@@ -19,7 +19,7 @@ declare global {
 }
 
 export class AuthMiddleware {
-    private readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    private readonly JWT_SECRET = process.env.JWT_SECRET || 'secret-key';
     private adminService = new AdminService;
 
     generateToken = (user: any): string => {
@@ -62,7 +62,7 @@ export class AuthMiddleware {
                 throw new ForbiddenError('Access denied');
             }
             const userId = req.user.id;
-            const admin = await this.adminService.getById(userId);
+            const admin = await this.adminService.getByUserId(userId);
             if (!admin) {
                 throw new ForbiddenError('Access denied');
             }
@@ -88,7 +88,6 @@ export class AuthMiddleware {
     requireAuditAdmin = this.allowRole(['audit-admin', 'task-admin', 'super-admin']);
     requireTaskAdmin = this.allowRole(['task-admin', 'super-admin']);
     requireSpecialAdmin = this.allowRole(['special-admin', 'super-admin']);
-    requireTaskOrSpecialAdmin = this.allowRole(['task-admin', 'special-admin', 'super-admin']);
     requireSuperAdmin = this.allowRole(['super-admin']);
 }
 

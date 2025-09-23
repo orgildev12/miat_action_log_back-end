@@ -9,9 +9,10 @@ import responseRoutes from './response';
 import userRoutes from './user';
 import taskOwnerRoutes from './taskOwners';
 import adminRoutes from './admin';
+import adminRoleRoutes from './adminRole';
+import { dbManager } from '../../database';
 
 const router = Router();
-
 router.get('/', (req, res) => {
   res.json({
     message: 'Welcome, http://localhost:3000/api-docs for API documentation'
@@ -25,8 +26,10 @@ router.use('/api/locationGroup', locationGroupRoutes);
 router.use('/api/locations', locationRoutes);
 router.use('/api/hazardType', hazardTypeRoutes);
 router.use('/api/response', responseRoutes);
-router.use('/api/users', userRoutes);
+router.use('/api/user', userRoutes);
 router.use('/api/admin', adminRoutes);
-router.use('/api/taskOwners', taskOwnerRoutes)
+router.use('/api/taskOwners', taskOwnerRoutes);
+router.use('/api/adminRole', adminRoleRoutes)
+
 
 export default router;

@@ -13,12 +13,13 @@ export class HazardTypeService {
 
         const dbData = newHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO HAZARD_TYPE (SHORT_CODE, NAME_EN, NAME_MN)
-             VALUES (:1, :2, :3)`,
+            `INSERT INTO ORGIL.HAZARD_TYPE (SHORT_CODE, NAME_EN, NAME_MN, IS_PRIVATE)
+             VALUES (:1, :2, :3, :4)`,
             [
                 dbData.SHORT_CODE,
                 dbData.NAME_EN,
                 dbData.NAME_MN,
+                dbData.IS_PRIVATE
             ],
             { autoCommit: true }
         );
@@ -36,7 +37,7 @@ export class HazardTypeService {
 
     async getById(id: number): Promise<HazardType> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM HAZARD_TYPE WHERE ID = :1`, 
+            `SELECT * FROM ORGIL.HAZARD_TYPE WHERE ID = :1`, 
             [id]
         );
         if (result.rows && result.rows.length > 0) {
@@ -47,7 +48,7 @@ export class HazardTypeService {
 
     async getAll(): Promise<HazardType[]> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM HAZARD_TYPE ORDER BY NAME_MN`, 
+            `SELECT * FROM ORGIL.HAZARD_TYPE ORDER BY NAME_MN`, 
             []
         );
 
@@ -68,7 +69,7 @@ export class HazardTypeService {
 
         const dbData = existingHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `UPDATE HAZARD_TYPE
+            `UPDATE ORGIL.HAZARD_TYPE
              SET SHORT_CODE = :1, NAME_EN = :2, NAME_MN = :3, IS_PRIVATE = :4
              WHERE ID = :4`,
             [
@@ -89,7 +90,7 @@ export class HazardTypeService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM HAZARD_TYPE WHERE ID = :1`,
+            `DELETE FROM ORGIL.HAZARD_TYPE WHERE ID = :1`,
             [id],
             { autoCommit: true }
         );

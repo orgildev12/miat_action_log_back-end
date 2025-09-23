@@ -13,7 +13,7 @@ export class LocationGroupService {
 
         const dbData = newLocationGroup.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO LOCATION_GROUP (NAME_EN, NAME_MN)
+            `INSERT INTO ORGIL.LOCATION_GROUP (NAME_EN, NAME_MN)
              VALUES (:1, :2)`,
             [
                 dbData.NAME_EN,
@@ -30,7 +30,7 @@ export class LocationGroupService {
 
     async getById(id: number): Promise<LocationGroup> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM LOCATION_GROUP WHERE ID = :1`, 
+            `SELECT * FROM ORGIL.LOCATION_GROUP WHERE ID = :1`, 
             [id]
         );
         if (result.rows && result.rows.length > 0) {
@@ -41,7 +41,7 @@ export class LocationGroupService {
 
     async getAll(): Promise<LocationGroup[]> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM LOCATION_GROUP ORDER BY NAME_EN`, 
+            `SELECT * FROM ORGIL.LOCATION_GROUP ORDER BY NAME_EN`, 
             []
         );
 
@@ -62,7 +62,7 @@ export class LocationGroupService {
 
         const dbData = existingLocationGroup.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `UPDATE LOCATION_GROUP
+            `UPDATE ORGIL.LOCATION_GROUP
              SET NAME_EN = :1, NAME_MN = :2
              WHERE ID = :3`,
             [
@@ -81,7 +81,7 @@ export class LocationGroupService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM LOCATION_GROUP WHERE ID = :1`,
+            `DELETE FROM ORGIL.LOCATION_GROUP WHERE ID = :1`,
             [id],
             { autoCommit: true }
         );

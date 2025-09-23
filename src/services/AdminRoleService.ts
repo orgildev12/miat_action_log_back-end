@@ -2,7 +2,7 @@ import { dbManager } from '../../database';
 import { AdminRole } from '../models/AdminRole';
 import { ValidationError, NotFoundError, DatabaseUnavailableError } from '../middleware/errorHandler/errorTypes';
 
-export class AdminService {
+export class AdminRoleService {
 
     async create(requestData: typeof AdminRole.modelFor.createRequest): Promise<AdminRole> {
         const promptValues = AdminRole.fromRequestData(requestData);
@@ -13,7 +13,7 @@ export class AdminService {
 
         const dbData = promptValues.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO ADMINROLE (ROLE_NAME)
+            `INSERT INTO ORGIL.ADMIN_ROLE (ROLE_NAME)
              VALUES (:1)`,
             [
                 dbData.ROLE_NAME,
@@ -31,7 +31,7 @@ export class AdminService {
 
     async getById(id: number): Promise<AdminRole> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM ADMINROLE WHERE ID = :1`,
+            `SELECT * FROM ORGIL.ADMIN_ROLE WHERE ID = :1`,
             [id]
         );
         if (result.rows && result.rows.length > 0) {
@@ -42,7 +42,7 @@ export class AdminService {
 
     async getAll(): Promise<AdminRole[]> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM ADMINROLE WHERE ID = :1`,
+            `SELECT * FROM ORGIL.ADMIN_ROLE`,
             []
         );
 
@@ -63,7 +63,7 @@ export class AdminService {
 
         const dbData = existingAdmin.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `UPDATE ADMINROLE SET ROLE_ID = :2,
+            `UPDATE ORGIL.ADMIN_ROLE SET ROLE_ID = :2
              WHERE ID = :1`,
             [
                 id,
@@ -80,7 +80,7 @@ export class AdminService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM ADMINROLE WHERE ID = :1`,
+            `DELETE FROM ORGIL.ADMIN_ROLE WHERE ID = :1`,
             [id],
             { autoCommit: true }
         );

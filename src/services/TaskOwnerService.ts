@@ -7,9 +7,9 @@ export class TaskOwnerService {
   async getOwnersByHazardId(id: number): Promise<TaskOwner[]> {
     const result = await dbManager.executeQuery(
       `SELECT t.*, a.ROLE_ID, e.EMP_KEY
-      FROM TASK_OWNERS t
-      INNER JOIN ADMIN a ON t.ADMIN_ID = a.ID
-      INNER JOIN EMPLOYEES e ON a.USER_ID = e.EMP_ID
+      FROM ORGIL.TASK_OWNERS t
+      INNER JOIN ORGIL.ADMIN a ON t.ADMIN_ID = a.ID
+      INNER JOIN ORGIL.EMPLOYEES e ON a.USER_ID = e.EMP_ID
       WHERE HAZARD_ID = :1`,
       [id]
     );
@@ -22,9 +22,9 @@ export class TaskOwnerService {
   async getById(hazard_id: number, admin_id: number): Promise<TaskOwner> {
     const result = await dbManager.executeQuery(
       `SELECT t.*, a.ROLE_ID, e.EMP_KEY
-      FROM TASK_OWNERS t
-      INNER JOIN ADMIN a ON t.ADMIN_ID = a.ID
-      INNER JOIN EMPLOYEES e ON a.USER_ID = e.EMP_ID
+      FROM ORGIL.TASK_OWNERS t
+      INNER JOIN ORGIL.ADMIN a ON t.ADMIN_ID = a.ID
+      INNER JOIN ORGIL.EMPLOYEES e ON a.USER_ID = e.EMP_ID
       WHERE HAZARD_ID = :1 AND ADMIN_ID = :2`,
       [hazard_id, admin_id]
     );
@@ -37,9 +37,9 @@ export class TaskOwnerService {
   async getAll(): Promise<TaskOwner[]> {
     const result = await dbManager.executeQuery(
       `SELECT t.*, a.ROLE_ID, e.EMP_KEY
-      FROM TASK_OWNERS t
-      INNER JOIN ADMIN a ON t.ADMIN_ID = a.ID
-      INNER JOIN EMPLOYEES e ON a.USER_ID = e.EMP_ID`
+      FROM ORGIL.TASK_OWNERS t
+      INNER JOIN ORGIL.ADMIN a ON t.ADMIN_ID = a.ID
+      INNER JOIN ORGIL.EMPLOYEES e ON a.USER_ID = e.EMP_ID`
     );
     if (result.rows) {
       return result.rows.map(row => TaskOwner.fromDatabase(row));
@@ -49,7 +49,7 @@ export class TaskOwnerService {
 
   async delete(hazardId: number, adminId: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `DELETE FROM TASK_OWNERS 
+      `DELETE FROM ORGIL.TASK_OWNERS 
       WHERE HAZARD_ID = :1 AND ADMIN_ID = :2`,
       [hazardId, adminId],
       { autoCommit: true }
@@ -70,7 +70,7 @@ export class TaskOwnerService {
     const dbData = newHazard.toDatabaseFormat();
     
     await dbManager.executeQuery(
-      `INSERT INTO HAZARD (HAZARD_ID, ADMIN_ID, IS_COLLABORATOR)
+      `INSERT INTO ORGIL.HAZARD (HAZARD_ID, ADMIN_ID, IS_COLLABORATOR)
        VALUES (:1, :2, :3)`,
       [
         dbData.HAZARD_ID,
@@ -85,7 +85,7 @@ export class TaskOwnerService {
 
   async updateOwnerType(hazard_id: number, admin_id: number, isSettingToCollab: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `UPDATE RESPONSE SET IS_COLLABORATOR = :3 WHERE HAZARD_ID = :1 AND ADMIN_ID = :2`,
+      `UPDATE ORGIL.RESPONSE SET IS_COLLABORATOR = :3 WHERE HAZARD_ID = :1 AND ADMIN_ID = :2`,
       [ 
         hazard_id, 
         admin_id, 
@@ -102,7 +102,7 @@ export class TaskOwnerService {
 
   async updateOwner(requestData: typeof TaskOwner.modelFor.updateRequest): Promise<TaskOwner>{
     const result = await dbManager.executeQuery(
-      `UPDATE TASK_OWNERS SET ADMIN_ID = :2 WHERE HAZARD_ID = :1 RETURNING *`,
+      `UPDATE ORGIL.TASK_OWNERS SET ADMIN_ID = :2 WHERE HAZARD_ID = :1 RETURNING *`,
       [ 
         requestData.hazard_id,
         requestData.admin_id
@@ -117,7 +117,7 @@ export class TaskOwnerService {
 
   async findOwnerId(hazardId: number): Promise<number | null> {
     const result = await dbManager.executeQuery(
-      `SELECT AMDIN_ID FROM TASK_OWNERS 
+      `SELECT AMDIN_ID FROM ORGIL.TASK_OWNERS 
       WHERE HAZARD_ID = :1 AND IS_COLLABORATOR = 0`,
       [hazardId]
     );
@@ -126,7 +126,7 @@ export class TaskOwnerService {
 
   async checkOwner(hazardId: number, adminId: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `SELECT ADMIN_ID FROM TASK_OWNERS 
+      `SELECT ADMIN_ID FROM ORGIL.TASK_OWNERS 
        WHERE HAZARD_ID = :1 AND ADMIN_ID = :2`,
       [hazardId, adminId]
     );

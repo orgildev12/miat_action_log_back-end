@@ -8,8 +8,8 @@ const hazardController = new HazardController();
 const { verifyToken, requireAdmin, requireSuperAdmin, requireSpecialAdmin } = authMiddleware;
 
 // public
-router.post('/', asyncHandler(hazardController.create));
-
+router.post('/noLogin', asyncHandler(hazardController.createWithoutLogin));
+router.post('/', verifyToken, asyncHandler(hazardController.create));
 router.get('/byUserId/:userId', verifyToken, asyncHandler(hazardController.getByUserId));
 
 router.get('/:id',     verifyToken, requireAdmin, asyncHandler(hazardController.getById));

@@ -1,12 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { ResponseService } from '../services/ResponseService';
-import { ResponseModel } from '../models/Response';
-import { ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError } from '../middleware/errorHandler/errorTypes';
+import { ConflictError, DatabaseUnavailableError, ForbiddenError } from '../middleware/errorHandler/errorTypes';
 import { HazardService } from '../services/HazardService';
+import { HazardPermissionChecker } from '../utils/hazardPermisionChecker';
+
 
 export class ResponseController {
     private responseService = new ResponseService();
     private hazardService = new HazardService();
+    private hazardPermissionChecker = new HazardPermissionChecker();
+
 
     // for users
     getByIdForUser = async (req: Request, res: Response): Promise<void> => {
@@ -43,6 +46,7 @@ export class ResponseController {
     // for response admin
     startAnalysis = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
+        await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 2)
         await this.responseService.getById(id);
 
         const isAppected = await this.responseService.startAnalysis(id);
@@ -54,6 +58,7 @@ export class ResponseController {
 
     updateResponseBody = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
+        await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 2)
         const responseBody = req.body.response_body
         const response = await this.responseService.getById(id);
         if(response.isStarted !== 1){
@@ -68,6 +73,7 @@ export class ResponseController {
 
     approveRequest = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
+        await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 2)
         const response = await this.responseService.getById(id);
         const responseBody = req.body.response_body
         if(response.isStarted !== 1){
@@ -83,6 +89,7 @@ export class ResponseController {
 
     denyRequest = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
+        await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 2)
         const response = await this.responseService.getById(id);
         const responseBody = req.body.response_body
         if(response.isStarted !== 1){
@@ -98,6 +105,7 @@ export class ResponseController {
 
     finishAnalysis = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
+        await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 2)
         const response = await this.responseService.getById(id);
         if(response.isRequestApproved === 0){
             throw new ConflictError(`request not approved or denied yet`);
@@ -116,25 +124,12 @@ export class ResponseController {
     };
 
     // for audit admin
-    startChecking = async (req: Request, res: Response): Promise<void> => {
+    confirmResponse = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
+        await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 3)
         const response = await this.responseService.getById(id);
         if(response.isResponseFinished === 0){
             throw new ConflictError(`request not finished yet`);
-        }
-        const isAppected = await this.responseService.startChecking(id);
-        if(!isAppected){
-            throw new DatabaseUnavailableError();
-        }
-        res.status(200).json('response checking started successfully')
-    };
-
-
-    confirmResponse = async (req: Request, res: Response): Promise<void> => {
-        const id = Number(req.params.id);
-        const response = await this.responseService.getById(id);
-        if(response.isCheckingResponse === 0){
-            throw new ConflictError(`you can't confirm response without checking response`);
         }
         const isAppected = await this.responseService.confirmResponse(id);
         if(!isAppected){
@@ -146,10 +141,11 @@ export class ResponseController {
 
     denyResponse = async (req: Request, res: Response): Promise<void> => {
         const id = Number(req.params.id);
+        await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 3)
         const response = await this.responseService.getById(id);
         const reasonToDeny = req.body.reason_to_deny
-        if(response.isCheckingResponse === 0){
-            throw new ForbiddenError(`you can't deny response without checking response`);
+        if(response.isResponseFinished === 0){
+            throw new ConflictError(`request not finished yet`);
         }
         const isAppected = await this.responseService.denyResponse(id, reasonToDeny);
         if(!isAppected){

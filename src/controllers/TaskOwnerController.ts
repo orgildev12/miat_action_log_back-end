@@ -1,39 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
-import { ResponseService } from '../services/ResponseService';
 import { ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError, ValidationError } from '../middleware/errorHandler/errorTypes';
 import { TaskOwnerService } from '../services/TaskOwnerService';
 import { HazardService } from '../services/HazardService';
 import { HazardTypeService } from '../services/HazardTypeService';
-import { AdminService } from '../services/AdminService';
 import { TaskOwner } from '../models/TaskOwner';
-import { get } from 'http';
+import { HazardPermissionChecker } from '../utils/hazardPermisionChecker';
 
 export class TaskOwnerController {
     private taskOwnerService = new TaskOwnerService();
     private hazardService = new HazardService();
     private hazardTypeService = new HazardTypeService();
-    private adminService = new AdminService();
+    private hazardPermissionChecker = new HazardPermissionChecker();
 
-    // туслах функцүүд
     private async getAdminRoleId(req: Request): Promise<number> {
         const adminRoleId = req.user?.role_id;
         return adminRoleId!;
     }
 
-    private async checkPermissionForAccessOwnership(hazardId: number, req: any): Promise<any> {
-        // task admin нь public hazard-д хариуцагч нэмэх ба харин special admin нь private hazard-д нэмнэ.
-        const adminRoleId =  await this.getAdminRoleId(req)
-        const hazard = await this.hazardService.getById(hazardId, false, true);
-        const hazardType = await this.hazardTypeService.getById(hazard.type_id);
-        const isHazardPrivate = hazardType.isPrivate === 1;
-        if((adminRoleId === 4 && isHazardPrivate) || (adminRoleId === 5 && !isHazardPrivate)){
-            throw new ForbiddenError("You can't change ownership of this hazard");
-        }
-        return isHazardPrivate
-    }
-
-
-    // үндсэн функцүүд
     getOwnersByHazardId = async (req: Request, res: Response): Promise<void> => {
         const hazardId = Number(req.params.hazardId);
         const userIdFromToken = req.user?.id;
@@ -58,7 +41,7 @@ export class TaskOwnerController {
         if (typeof hazard_id !== 'number' || typeof admin_id !== 'number') {
             throw new ValidationError('hazard_id and admin_id must be provided');
         }
-        await this.checkPermissionForAccessOwnership(hazard_id, req);
+        await this.hazardPermissionChecker.checkPermissionForAccess(hazard_id, req, 4);
 
         const isDeleted = await this.taskOwnerService.delete(hazard_id, admin_id);
         if (!isDeleted) {
@@ -77,7 +60,7 @@ export class TaskOwnerController {
     addOwner = async (req: Request, res: Response): Promise<void> => {
         const requestData = TaskOwner.modelFor.createRequest = req.body;
         
-        await this.checkPermissionForAccessOwnership(requestData.hazard_id, req);
+        await this.hazardPermissionChecker.checkPermissionForAccess(requestData.hazard_id, req, 4)
 
         // owner байгаа эсэхийг үзээд байхгүй бол owner, байвал collaborator болгож нэмэх
         const ownersOfHazard = await this.taskOwnerService.getOwnersByHazardId(requestData.hazard_id);
@@ -120,7 +103,7 @@ export class TaskOwnerController {
     updateOwnerOrCollab = async (req: Request, res: Response): Promise<void> => {
         const requestData = TaskOwner.modelFor.updateRequest = req.body;
 
-        await this.checkPermissionForAccessOwnership(requestData.hazard_id, req);
+        await this.hazardPermissionChecker.checkPermissionForAccess(requestData.hazard_id, req, 4);
         const adminRoleId = await this.getAdminRoleId(req)
         if(requestData.is_collaborator === 0 && adminRoleId === 5){
             throw new ForbiddenError("You can't set owner to private hazard, but you change collaborators")

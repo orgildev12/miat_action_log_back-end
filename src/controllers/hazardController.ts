@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { HazardService } from '../services/HazardService';
 import { Hazard } from '../models/Hazard';
-import { ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError } from '../middleware/errorHandler/errorTypes';
+import { AuthError, ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError } from '../middleware/errorHandler/errorTypes';
 import { map } from 'zod';
 import is from 'zod/v4/locales/is.cjs';
 import { TaskOwnerService } from '../services/TaskOwnerService';
@@ -10,24 +10,35 @@ export class HazardController {
     private hazardService = new HazardService();
     private taskOwnerService = new TaskOwnerService();
     // public
+    createWithoutLogin = async (req: Request, res: Response): Promise<void> => {
+        const requestData: typeof Hazard.modelFor.createRequest = req.body;
+        if(requestData.user_id){
+            delete requestData.user_id
+        }
+        const createdHazard = await this.hazardService.create(requestData, false);
+        res.status(201).json(createdHazard);
+    };
+
     create = async (req: Request, res: Response): Promise<void> => {
         const requestData: typeof Hazard.modelFor.createRequest = req.body;
         if(requestData.user_id === undefined){
-            // Хэрэв user_id байхгүй гадны хэрэглэгч гэсэг үг.
-            // Гадны хэрэглэгч хүсэлт явуулж болно.
-            // Гэхдээ ингэхийн тулд hazard.user_name, hazard.email, hazard.phone_number байх ёстой.
-            // Энэ шалгалтыг Hazard model.validate() дотор хийсэн байгаа.
-
-            const createdHazard = await this.hazardService.create(requestData);
-            res.status(201).json(createdHazard);
+            throw new AuthError('Access denied');
         }
+        // Ensure joined fields are null when user_id is present
+        delete requestData.user_name;
+        delete requestData.email;
+        delete requestData.phone_number;
 
         const userIdFromToken = req.user?.id;
+
+        console.log('requestData.user_id', requestData.user_id);
+        console.log('userIdFromToken', userIdFromToken);
+        
         if(requestData.user_id !== userIdFromToken){
             throw new ForbiddenError('Access denied');
         }
 
-        const createdHazard = await this.hazardService.create(requestData);
+        const createdHazard = await this.hazardService.create(requestData, true);
         res.status(201).json(createdHazard);
     };
 
@@ -65,6 +76,10 @@ export class HazardController {
                 if(!isOwner){
                     throw new ForbiddenError('Access denied')
                 }
+                // need to erase user's info from hazard object before sending response
+                const { user_id, user_name, email, phone_number, ...rest } = hazard;
+                res.status(200).json(rest);
+                return;
             }
         }
 
