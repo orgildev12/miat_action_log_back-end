@@ -15,7 +15,7 @@ export class ResponseController {
     getByIdForUser = async (req: Request, res: Response): Promise<void> => {
         const hazardId = Number(req.params.hazardId);
         const userIdFromToken = req.user?.id;
-        const hazard = await this.hazardService.getById(hazardId);
+        const hazard = await this.hazardService.getById(hazardId, true, true, false);
         if(hazard.user_id !== userIdFromToken){
             throw new ForbiddenError('Access denied');
         }

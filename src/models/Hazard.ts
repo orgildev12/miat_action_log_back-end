@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import is from 'zod/v4/locales/is.cjs';
 
 const HazardSchema = z.object({
     id: z.number().int().positive().optional(),
@@ -12,7 +13,7 @@ const HazardSchema = z.object({
     user_id: z.number().int().positive('User ID must be a positive integer').optional(),
     user_name: z.string().max(320, 'User name must be 320 characters or less').nullable().optional(),
     email: z.string().email('Invalid email format').max(320, 'Email must be 320 characters or less').nullable().optional(),
-    phone_number: z.string().length(8, 'Phone number must be exactly 8 digits').regex(/^$/, 'Phone number must contain only digits').nullable().optional(),
+    phone_number: z.string().length(8, 'Phone number must be exactly 8 digits').regex(/^\d{8}$/, 'Phone number must contain only digits').nullable().optional(),
     type_id: z.number().int().positive('Type ID must be a positive integer'), 
     location_id: z.number().int().positive('Location ID must be a positive integer'),
     description: z.string()
@@ -51,7 +52,7 @@ const HazardJoinedSchema = z.object({
     type_name_mn: z.string().max(100).nullable().optional(),
     location_name_en: z.string().max(100).nullable().optional(),
     location_name_mn: z.string().max(100).nullable().optional(),
-    isconfirmed: z.number().nullable().optional(),
+    is_response_confirmed: z.number().nullable().optional(),
     response_body: z.string().nullable().optional(),
     is_private: z.number().nullable().optional(),
     date_updated: z.date().nullable().optional()
@@ -106,7 +107,7 @@ export class Hazard implements IHazardData {
     public type_name_mn?: string | null;
     public location_name_en?: string | null;
     public location_name_mn?: string | null;
-    public isconfirmed?: number | null;
+    public is_response_confirmed?: number | null;
     public response_body?: string | null;
     public is_private?: number;
     public date_updated?: Date | null;
@@ -131,7 +132,7 @@ export class Hazard implements IHazardData {
             this.type_name_mn = joined.type_name_mn ?? null;
             this.location_name_en = joined.location_name_en ?? null;
             this.location_name_mn = joined.location_name_mn ?? null;
-            this.isconfirmed = joined.isconfirmed ?? null;
+            this.is_response_confirmed = joined.is_response_confirmed ?? null;
             this.response_body = joined.response_body ?? null;
             this.is_private = joined.is_private !== null ? joined.is_private : undefined;
             this.date_updated = joined.date_updated ?? null;
@@ -167,22 +168,49 @@ export class Hazard implements IHazardData {
         };
     }
 
-    toJSON(): IHazardData {
-        return {
-            id: this.id,
-            code: this.code,
-            statusEn: this.statusEn,
-            statusMn: this.statusMn,
-            user_id: this.user_id,
-            user_name: this.user_name,
-            email: this.email,
-            phone_number: this.phone_number,
-            type_id: this.type_id,
-            location_id: this.location_id,
-            description: this.description,
-            solution: this.solution,
-            date_created: this.date_created,
-        };
+    toJSON(isIncludeReference: boolean): IHazardData & IHazardJoinedData {
+        if(isIncludeReference !== true){
+            return {
+                id: this.id,
+                code: this.code,
+                statusEn: this.statusEn,
+                statusMn: this.statusMn,
+                user_id: this.user_id,
+                user_name: this.user_name,
+                email: this.email,
+                phone_number: this.phone_number,
+                type_id: this.type_id,
+                location_id: this.location_id,
+                description: this.description,
+                solution: this.solution,
+                date_created: this.date_created,
+            }
+        }else{
+            return {
+                id: this.id,
+                code: this.code,
+                statusEn: this.statusEn,
+                statusMn: this.statusMn,
+                user_id: this.user_id,
+                user_name: this.user_name,
+                email: this.email,
+                phone_number: this.phone_number,
+                type_id: this.type_id,
+                location_id: this.location_id,
+                description: this.description,
+                solution: this.solution,
+                date_created: this.date_created,
+                // joined fields
+                type_name_en: this.type_name_en,
+                type_name_mn: this.type_name_mn,
+                location_name_en: this.location_name_en,
+                location_name_mn: this.location_name_mn,
+                is_response_confirmed: this.is_response_confirmed,
+                response_body: this.response_body,
+                is_private: this.is_private,
+                date_updated: this.date_updated,
+            };
+        }
     }
 
     static fromDatabase(row: any): Hazard {
@@ -209,7 +237,7 @@ export class Hazard implements IHazardData {
             is_private: row.IS_PRIVATE ?? null,
             location_name_en: row.LOCATION_NAME_EN ?? null,
             location_name_mn: row.LOCATION_NAME_MN ?? null,
-            isconfirmed: row.ISCONFIRMED ?? null,
+            is_response_confirmed: row.IS_RESPONSE_CONFIRMED ?? null,
             response_body: row.RESPONSE_BODY ?? null,
             date_updated: row.DATE_UPDATED ?? null
         });

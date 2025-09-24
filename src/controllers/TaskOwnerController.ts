@@ -22,7 +22,7 @@ export class TaskOwnerController {
         const userIdFromToken = req.user?.id;
 
         const adminRoleId = await this.getAdminRoleId(req)
-        const hazard = await this.hazardService.getById(hazardId, false, true);
+        const hazard = await this.hazardService.getById(hazardId, false, true, false);
         const hazardType = await this.hazardTypeService.getById(hazard.type_id);
         if(hazardType.isPrivate === 1 && adminRoleId < 5){
             const isOwner = await this.taskOwnerService.checkOwner(hazardId, adminRoleId);

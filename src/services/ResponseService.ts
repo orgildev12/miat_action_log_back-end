@@ -6,7 +6,7 @@ export class ResponseService {
   
   async getByIdForUser(id: number): Promise<ResponseModel> {
     const result = await dbManager.executeQuery(
-      `SELECT HAZARD_ID, IS_STARTED, RESPONSE_BODY, IS_APPROVED, IS_CONFIRMED, DATE_UPDATED 
+      `SELECT HAZARD_ID, IS_STARTED, RESPONSE_BODY, IS_APPROVED, IS_RESPONSE_CONFIRMED, DATE_UPDATED 
       FROM ORGIL.RESPONSE WHERE HAZARED_ID = :1`,
       [id]
     );

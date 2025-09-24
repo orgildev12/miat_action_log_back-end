@@ -2,14 +2,16 @@ import { Request, Response, NextFunction } from 'express';
 import { HazardService } from '../services/HazardService';
 import { Hazard } from '../models/Hazard';
 import { AuthError, ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError } from '../middleware/errorHandler/errorTypes';
-import { map } from 'zod';
-import is from 'zod/v4/locales/is.cjs';
 import { TaskOwnerService } from '../services/TaskOwnerService';
+import { UserService } from '../services/UserService';
+import { AdminService } from '../services/AdminService';
 
 export class HazardController {
     private hazardService = new HazardService();
     private taskOwnerService = new TaskOwnerService();
-    // public
+    private userService = new UserService();
+    private adminService = new AdminService();
+
     createWithoutLogin = async (req: Request, res: Response): Promise<void> => {
         const requestData: typeof Hazard.modelFor.createRequest = req.body;
         if(requestData.user_id){
@@ -19,21 +21,18 @@ export class HazardController {
         res.status(201).json(createdHazard);
     };
 
+
     create = async (req: Request, res: Response): Promise<void> => {
         const requestData: typeof Hazard.modelFor.createRequest = req.body;
         if(requestData.user_id === undefined){
             throw new AuthError('Access denied');
         }
-        // Ensure joined fields are null when user_id is present
+        // user_id байсан мөртлөө доорх мөрүүд яагаад ч юм бөглөгдөж ирвэл усгагдана.
         delete requestData.user_name;
         delete requestData.email;
         delete requestData.phone_number;
 
         const userIdFromToken = req.user?.id;
-
-        console.log('requestData.user_id', requestData.user_id);
-        console.log('userIdFromToken', userIdFromToken);
-        
         if(requestData.user_id !== userIdFromToken){
             throw new ForbiddenError('Access denied');
         }
@@ -42,33 +41,61 @@ export class HazardController {
         res.status(201).json(createdHazard);
     };
 
-    // for users
-    getByUserId = async (req: Request, res: Response): Promise<void> => {
-        const userId = Number(req.params.userId);
-        const userIdFromToken = req.user?.id;
 
-        if (userIdFromToken !== userId) {
-            throw new ForbiddenError('Access denied');
+    getAllForNormalAdmins = async (req: Request, res: Response): Promise<void> => {
+        // for admin, response-admin, audit-admin, task-admin
+        const includeRefString = req.query.includeRef;
+        const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
+
+        const hazards = await this.hazardService.getAll(isIncludeRef, false, true);
+
+        // Зөвхөн өөрт нь хамаарах private hazard-уудыг нэмэх
+        const user_id = req.user?.id;
+        if(user_id === undefined){
+            throw new AuthError('Access denied')
         }
-        const hazards = await this.hazardService.getByUserId(userId);
-        const mappedHazards = hazards.map(h => h.toJSON());
-        res.json(mappedHazards);
+        const admin = await this.adminService.getByUserId(user_id);
+        const privateHazards = await this.hazardService.getAllPrivateByAdminId(admin.id!);
+
+        const hazardIds = new Set(hazards.map(h => h.id));
+        const combinedHazards = [
+            ...hazards,
+            ...privateHazards.filter(ph => !hazardIds.has(ph.id))
+        ];
+
+        res.json(combinedHazards.map(lg => lg.toJSON(isIncludeRef)));
     };
 
-    // for admins
+
+    getAllForSuperiorAdmins = async (req: Request, res: Response): Promise<void> => {
+        // for special-admin, super-admin: Энэ шалгалт router дээр хийгдсэн.
+        const includeRefString = req.query.includeRef; // from route /hazard/?includeRef=true&?includePrivate=true
+        const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
+        const inludePrivateString = req.query.includePrivate;
+        const isIncludePrivate = inludePrivateString === undefined ? true : inludePrivateString === 'true';
+
+        const hazards = await this.hazardService.getAll(isIncludeRef, isIncludePrivate, true);
+
+        res.json(hazards.map(lg => lg.toJSON(isIncludeRef)));
+    };
+
+    
     getById = async (req: Request, res: Response): Promise<void> => {
-        // for super-admin
-        const includeRefString = req.query.includeRef; // from route /hazard/:id?includeRef=true?includePrivate=true
+        // for all admins
+        const includeRefString = req.query.includeRef; // from route /hazard/:id?includeRef=true&?includePrivate=true
         const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
         const inludePrivateString = req.query.includePrivate;
         const isIncludePrivate = inludePrivateString === undefined ? true : inludePrivateString === 'true';
 
         const id = Number(req.params.id);
-        const hazard = await this.hazardService.getById(id, isIncludeRef, isIncludePrivate);
+        const hazard = await this.hazardService.getById(id, isIncludeRef, isIncludePrivate, true);
 
         const isPrivate = hazard.is_private !== 0
         if(isPrivate){
-            const adminRoleId = req.body.adminRoleId;
+            const adminRoleId = req.user?.role_id;
+            if(adminRoleId === undefined){
+                throw new AuthError('Access denied')
+            }
             if(adminRoleId < 5){
                 const admin_id = req.body.admin_id;
                 const taskOwners = await this.taskOwnerService.getOwnersByHazardId(id);
@@ -76,7 +103,7 @@ export class HazardController {
                 if(!isOwner){
                     throw new ForbiddenError('Access denied')
                 }
-                // need to erase user's info from hazard object before sending response
+                // 5-с доош эрхтэй admin private hazard-ийн хэрэглэгчийн мэдээлэл харагдахгүй.
                 const { user_id, user_name, email, phone_number, ...rest } = hazard;
                 res.status(200).json(rest);
                 return;
@@ -87,53 +114,29 @@ export class HazardController {
     };
 
 
-    getAll = async (req: Request, res: Response): Promise<void> => {
-        // for super-admin
-        const includeRefString = req.query.includeRef; // from route /hazard/?includeRef=true?includePrivate=true
+    // Энэ controller нь зөвхөн хэрэглэгчид зориулсан учир is_private-аар шүүх болон
+    // username, email, phone_number-аар баяжлуулах шаардлагагүй
+    getByUserId = async (req: Request, res: Response): Promise<void> => {
+        // for users
+        const userId = Number(req.params.userId);
+        const userIdFromToken = req.user?.id;
+        const includeRefString = req.query.includeRef; // from route /hazard/:id?includeRef=true
         const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
-        const inludePrivateString = req.query.includeRef;
-        const isIncludePrivate = inludePrivateString === undefined ? true : inludePrivateString === 'true';
 
-        const hazards = await this.hazardService.getAll(isIncludeRef, isIncludePrivate);
-        res.json(hazards.map(lg => lg.toJSON()));
+        if (userIdFromToken !== userId) {
+            throw new ForbiddenError('Access denied');
+        }
+        const hazards = await this.hazardService.getByUserId(userId, isIncludeRef);
+        const mappedHazards = hazards.map(h => h.toJSON(true));
+        res.json(mappedHazards);
     };
 
 
-    getAllPublic = async (req: Request, res: Response): Promise<void> => {
-        // for response-admin & audit-admin
-        const includeRefString = req.query.includeRef;
-        const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
-
-        const hazards = await this.hazardService.getAll(isIncludeRef, false);
-
-        const admin_id = req.body.admin_id;
-        const privateHazards = await this.hazardService.getAllPrivateByAdminId(admin_id);
-
-        // Combine public hazards and private hazards (avoid duplicates)
-        const hazardIds = new Set(hazards.map(h => h.id));
-        const combinedHazards = [
-            ...hazards,
-            ...privateHazards.filter(ph => !hazardIds.has(ph.id))
-        ];
-
-        res.json(combinedHazards.map(lg => lg.toJSON()));
-    };
-
-    getAllPrivate = async (req: Request, res: Response): Promise<void> => {
-        // for special-admin
-        const includeRefString = req.query.includeRef;
-        const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
-
-        const hazards = await this.hazardService.getAll(isIncludeRef, false);
-        res.json(hazards.map(lg => lg.toJSON()));
-    };
-
-
-    // for super-admin
     delete = async (req: Request, res: Response): Promise<void> => {
+        // for only super-admin
         const id = Number(req.params.id);
-        const isTypeExist = await this.hazardService.getById(id);
-        if(!isTypeExist){
+        const isHazardExist = await this.hazardService.getById(id, false, true, false);
+        if(!isHazardExist){
             throw new NotFoundError(`hazard not found`);
         }
 

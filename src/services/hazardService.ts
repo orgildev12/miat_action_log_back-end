@@ -44,14 +44,74 @@ export class HazardService {
         { autoCommit: true }
       );
     }
-    return newHazard;
+    return result.rowsAffected && result.rowsAffected > 0 ? newHazard : Promise.reject('Failed to create hazard');
+  }
+
+  
+  async getAll(
+    includeReference: boolean, 
+    includePrivateHazars: boolean,
+    enrichByUserInfo: boolean
+  ): Promise<Hazard[]> {
+    let result;
+
+    let whereClause = '';
+    if (!includePrivateHazars) {
+      whereClause += ' WHERE ht.IS_PRIVATE = 0';
+    }
+
+    // хэрэглэгчийн мэдээлэл special-admin, super-admin нарт харагдах ёстой. 
+    // hazard анх үүсэхэд user_id байсан тохиолдод username, email зэрэг нь хадгалагддаггүй,
+    // харин гадны хэрэглэгч hazard үүсгэсэн бол user_id байхгүй, нөгөө 3 нь байдаг
+    // доорх хэсэгт eoffice-ын дата базаас хэрэглэгчийн мэдээллийг татаж байна.
+    let addSelect = '';
+    let addInnerJoin = '';
+    if (enrichByUserInfo) {
+      addSelect += ' e.EMP_KEY AS USER_NAME, e.EMP_EMAIL AS EMAIL, e.PHONE_MOBILE AS PHONE_NUMBER,';
+      addInnerJoin += ' INNER JOIN EOFFICE.EO_EMPLOYEES e ON h.USER_ID = e.EMP_ID';
+    }else{
+      addSelect += ' h.USER_NAME, h.EMAIL, h.PHONE_NUMBER,';
+    }
+
+    if(!includeReference){
+      result = await dbManager.executeQuery(
+        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
+        FROM ORGIL.HAZARD h
+        ${addInnerJoin}
+        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+        ${whereClause}
+        ORDER BY h.DATE_CREATED DESC`,
+        []
+      );
+    }else{
+      result = await dbManager.executeQuery(
+        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED 
+          ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
+          l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
+          r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
+        FROM ORGIL.HAZARD h
+        ${addInnerJoin}
+        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+        INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
+        LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
+        ${whereClause}
+        ORDER BY h.DATE_CREATED DESC`,
+        []
+      );
+    }
+
+    if (result.rows) {
+      return result.rows.map(row => Hazard.fromDatabase(row));
+    }
+    return [];
   }
 
 
   async getById(
     id: number, 
-    includeReference: boolean = true,
-    includePrivateHazars: boolean = false
+    includeReference: boolean,
+    includePrivateHazars: boolean,
+    enrichByUserInfo: boolean
   ): Promise<Hazard> {
 
     let result;
@@ -60,27 +120,39 @@ export class HazardService {
       whereClause += ' AND ht.IS_PRIVATE = 0';
     }
 
+    let addSelect = '';
+    let addInnerJoin = '';
+    if (enrichByUserInfo) {
+      addSelect += ' e.EMP_KEY AS USER_NAME, e.EMP_EMAIL AS EMAIL, e.PHONE_MOBILE AS PHONE_NUMBER,';
+      addInnerJoin += ' INNER JOIN EOFFICE.EO_EMPLOYEES e ON h.USER_ID = e.EMP_ID';
+    }else{
+      addSelect += ' h.USER_NAME, h.EMAIL, h.PHONE_NUMBER,';
+    }
+
     if(!includeReference){
       result = await dbManager.executeQuery(
-        `SELECT h.*
+        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
         FROM ORGIL.HAZARD h
+        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+        ${whereClause}`,
+        [id]
+      );
+    }else{
+      result = await dbManager.executeQuery(
+        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
+          ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
+          l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
+          r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
+        FROM ORGIL.HAZARD h
+        ${addInnerJoin}
+        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+        INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
+        LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
         ${whereClause}`,
         [id]
       );
     }
 
-    result = await dbManager.executeQuery(
-      `SELECT h.*,
-        ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
-        l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
-        r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-      FROM ORGIL.HAZARD h
-      INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-      INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-      LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
-      ${whereClause}`,
-      [id]
-    );
 
     if (!result.rows || result.rows.length === 0) {
       throw new NotFoundError(`Hazard not found`);
@@ -88,51 +160,12 @@ export class HazardService {
     return Hazard.fromDatabase(result.rows[0]);
   }
 
-  
-  async getAll(
-    includeReference: boolean = true, 
-    includePrivateHazars: boolean = false
-  ): Promise<Hazard[]> {
-    let result;
-    let whereClause = '';
-    if (!includePrivateHazars) {
-      whereClause += ' WHERE ht.IS_PRIVATE = 0';
-    }
-
-    if(!includeReference){
-      result = await dbManager.executeQuery(
-        `SELECT *
-        FROM ORGIL.HAZARD h
-        ${whereClause}
-        ORDER BY h.DATE_CREATED DESC`,
-        []
-      );
-    }
-
-    result = await dbManager.executeQuery(
-      `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED, 
-        ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
-        l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
-        r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-      FROM ORGIL.HAZARD h
-      INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-      INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-      LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
-      ${whereClause}
-      ORDER BY h.DATE_CREATED DESC`,
-      []
-    );
-
-    if (result.rows) {
-      return result.rows.map(row => Hazard.fromDatabase(row));
-    }
-    return [];
-  }
-
 async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
-  // doesn't include user's info
+  // 5с доош эрхтэй буюу энгийн админуудад зориулсан.
+  // Хэрэглэгчийн мэдээллийг агуулахгүй, 
+  // зөвхөн тухайн админд хамаарах private hazard-уудыг буцаана.
     const result = await dbManager.executeQuery(
-      `SELECT h.*, 
+      `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED,  
         ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
         l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
         r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
@@ -152,8 +185,8 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
     return [];
 }
 
-
-  async getByUserId(userId: number, includeReference: boolean = true): Promise<Hazard[]> {
+// Зөвхөн хэрэглэгч өөрөө үүсгэсэн hazard-уудыг буцаана. Ямар ч шүүлт хийгдэхгүй.
+  async getByUserId(userId: number, includeReference: boolean): Promise<Hazard[]> {
     let result;
     if (!includeReference) {
       result = await dbManager.executeQuery(

@@ -15,7 +15,7 @@ export class HazardPermissionChecker {
 
     async checkPermissionForAccess(hazardId: number, req: any, whatRoleIsFor: number): Promise<any> {
         const adminRoleId = req.user?.role_id;
-        const hazard = await this.hazardService.getById(hazardId, false, true);
+        const hazard = await this.hazardService.getById(hazardId, false, true, false);
         const hazardType = await this.hazardTypeService.getById(hazard.type_id);
         const isHazardPrivate = hazardType.isPrivate === 1;
         if ((adminRoleId === 5 && isHazardPrivate) || (adminRoleId === whatRoleIsFor && !isHazardPrivate) || adminRoleId === 6) {
