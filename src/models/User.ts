@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const UserSchema = z.object({
        id: z.number().int().positive().optional(),
-       username: z.string().trim(),
+       user_name: z.string().trim(),
        fname_en: z.string().trim().nullish(),
        fname_mn: z.string().trim(),
        lname_en: z.string().trim().nullish(),
@@ -13,7 +13,7 @@ const UserSchema = z.object({
 
 // Simple schema for login requests
 const AuthRequestSchema = z.object({
-    username: z.string().trim().min(1, 'Username is required'),
+    user_name: z.string().trim().min(1, 'Username is required'),
     password: z.string().min(1, 'Password is required')
 });
 
@@ -37,7 +37,7 @@ export class User implements IUserData {
     };
 
     public id?: number;
-    public username: string;
+    public user_name: string;
     public fname_en: string | null;
     public fname_mn: string;
     public lname_en: string | null;
@@ -47,7 +47,7 @@ export class User implements IUserData {
 
     constructor(data: IUserData){
         this.id = data.id;
-        this.username = data.username;
+        this.user_name = data.user_name;
         this.fname_en = data.fname_en ?? null;
         this.fname_mn = data.fname_mn;
         this.lname_en = data.lname_en ?? null;
@@ -70,7 +70,7 @@ export class User implements IUserData {
     toJSON(): IUserData {
         return {
             id: this.id,
-            username: this.username,
+            user_name: this.user_name,
             fname_en: this.fname_en,
             fname_mn: this.fname_mn,
             lname_en: this.lname_en,
@@ -82,7 +82,7 @@ export class User implements IUserData {
 
     toDatabaseFormat(): typeof User.modelFor.authRequest {
         return {
-            username: this.username,
+            user_name: this.user_name,
             password: '' // This will be handled separately in auth
         };
     }
@@ -90,7 +90,7 @@ export class User implements IUserData {
     static fromDatabase(row: any): User {
         return new User({
             id: row.EMP_ID,
-            username: row.EMP_KEY,
+            user_name: row.EMP_KEY,
             fname_en: row.FNAME_ENG,
             fname_mn: row.FNAME,
             lname_en: row.LNAME_ENG,

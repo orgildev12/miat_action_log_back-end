@@ -55,20 +55,16 @@ class DatabaseManager {
         let connection;
         try {
             connection = await this.pool.getConnection();
-            try {
-                await connection.execute(`ALTER SESSION SET NLS_LANG='AMERICAN_AMERICA.AL32UTF8'`);
-            }
-            catch (err) {
-                console.warn('Warning: Could not set session NLS_LANG:', err);
-            }
             const processedBinds = binds.map(bind => {
                 if (typeof bind === 'string') {
                     return {
                         val: bind,
                         type: oracledb_1.default.STRING,
-                        maxSize: bind.length * 4
+                        maxSize: bind ? bind.length * 4 : 4000
                     };
                 }
+                if (bind === undefined)
+                    return null;
                 return bind;
             });
             const defaultOptions = {

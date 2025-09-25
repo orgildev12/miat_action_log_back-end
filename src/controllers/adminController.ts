@@ -39,10 +39,7 @@ export class AdminController {
 
     update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const id = Number(req.params.id);
-        const isGroupExist = await this.adminService.getById(id);
-        if(!isGroupExist){
-            throw new NotFoundError(`admin with id: ${id} not found`);
-        }
+        await this.adminService.getById(id);
 
         const updateData: typeof Admin.modelFor.updateRequest = req.body;
         const updatedAdmin = await this.adminService.updateRole(id, updateData);

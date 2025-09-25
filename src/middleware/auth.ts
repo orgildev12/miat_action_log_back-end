@@ -10,7 +10,7 @@ declare global {
         interface Request {
             user?: {
                 id: number;
-                username: string;
+                user_name: string;
                 role_id?: number;
                 role_name?: string;
             };
@@ -25,7 +25,7 @@ export class AuthMiddleware {
     generateToken = (user: any): string => {
         const payload = {
             id: user.id,
-            username: user.username,
+            user_name: user.user_name,
         };
 
         return jwt.sign(payload, this.JWT_SECRET, { 
@@ -47,7 +47,7 @@ export class AuthMiddleware {
             
             req.user = {
                 id: decoded.id,
-                username: decoded.username
+                user_name: decoded.user_name
             };
 
             next();

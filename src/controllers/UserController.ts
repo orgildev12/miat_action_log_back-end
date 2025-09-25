@@ -15,7 +15,7 @@ export class UserController {
             throw new ValidationError(validation.errors);
         }
 
-        const result = await this.userService.getUserByUsername(requestData.username);
+        const result = await this.userService.getUserByUsername(requestData.user_name);
         if (!result) {
             throw new AuthError('Username or password is incorrect');
         }

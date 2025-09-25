@@ -5,12 +5,12 @@ import { ValidationError, NotFoundError } from '../middleware/errorHandler/error
 export class UserService {
     private static readonly EMPLOYEES_TABLE = process.env.EMPLOYEES_TABLE;
 
-    async getUserByUsername(username: string): Promise<{ user: User; passwordHash: string } | null> {
+    async getUserByUsername(user_name: string): Promise<{ user: User; passwordHash: string } | null> {
         const result = await dbManager.executeQuery(
             `SELECT EMP_ID, EMP_KEY, FNAME_ENG, FNAME, LNAME_ENG, LNAME, EMP_EMAIL, PHONE_MOBILE, EMP_PASSWORD 
             FROM ${UserService.EMPLOYEES_TABLE}
             WHERE EMP_KEY = :1`,
-            [username]
+            [user_name]
         );
         
         if (result.rows && result.rows.length > 0) {

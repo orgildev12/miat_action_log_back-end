@@ -136,7 +136,7 @@ curl -X DELETE http://localhost:3000/api/alog-test/1
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `DB_USER` | Oracle database username | - | Yes |
+| `DB_USER` | Oracle database user_name | - | Yes |
 | `DB_PASSWORD` | Oracle database password | - | Yes |
 | `DB_CONNECTION_STRING` | Oracle connection string | - | Yes |
 | `PORT` | Server port | 3000 | No |

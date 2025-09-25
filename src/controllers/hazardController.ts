@@ -115,18 +115,16 @@ export class HazardController {
 
 
     // Энэ controller нь зөвхөн хэрэглэгчид зориулсан учир is_private-аар шүүх болон
-    // username, email, phone_number-аар баяжлуулах шаардлагагүй
+    // user_name, email, phone_number-аар баяжлуулах шаардлагагүй
     getByUserId = async (req: Request, res: Response): Promise<void> => {
         // for users
         const userId = Number(req.params.userId);
         const userIdFromToken = req.user?.id;
-        const includeRefString = req.query.includeRef; // from route /hazard/:id?includeRef=true
-        const isIncludeRef = includeRefString === undefined ? true : includeRefString === 'true';
 
         if (userIdFromToken !== userId) {
             throw new ForbiddenError('Access denied');
         }
-        const hazards = await this.hazardService.getByUserId(userId, isIncludeRef);
+        const hazards = await this.hazardService.getByUserId(userId, true);
         const mappedHazards = hazards.map(h => h.toJSON(true));
         res.json(mappedHazards);
     };

@@ -73,23 +73,17 @@ export class DatabaseManager {
       connection = await this.pool.getConnection();
       
       // Set connection-level character encoding for this session
-      try {
-        await connection.execute(`ALTER SESSION SET NLS_LANG='AMERICAN_AMERICA.AL32UTF8'`);
-      } catch (err) {
-        // If ALTER SESSION fails, continue anyway
-        console.warn('Warning: Could not set session NLS_LANG:', err);
-      }
       
       // Process bind parameters to ensure proper UTF-8 encoding for Oracle
       const processedBinds = binds.map(bind => {
         if (typeof bind === 'string') {
-          // For string parameters, ensure proper UTF-8 encoding and Oracle type specification
           return {
             val: bind,
             type: oracledb.STRING,
-            maxSize: bind.length * 4 // Allow for UTF-8 multi-byte characters
+            maxSize: bind ? bind.length * 4 : 4000 // Fallback if bind is empty
           };
         }
+        if (bind === undefined) return null;
         return bind;
       });
       

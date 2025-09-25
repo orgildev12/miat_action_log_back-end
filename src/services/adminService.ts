@@ -71,6 +71,7 @@ export class AdminService {
         );
 
         if (result.rows) {
+            console.log('Fetched admins:', result.rows);
             return result.rows.map(row => Admin.fromDatabase(row));
         }
         return [];
@@ -86,19 +87,20 @@ export class AdminService {
         }
 
         const dbData = existingAdmin.toDatabaseFormat();
+        console.log("paramsId: ", id, " roleId:  ", dbData.ROLE_ID);
         const result = await dbManager.executeQuery(
             `UPDATE ORGIL.ADMIN SET ROLE_ID = :2
              WHERE ID = :1`,
             [
                 id,
-                dbData.ROLE_ID,
+                dbData.ROLE_ID
             ],
             { autoCommit: true }
         );
         
-        if ((result.rowsAffected || 0) === 0) {
-            throw new DatabaseUnavailableError(`Failed to update admin role, please try again later`);
-        }
+        // if ((result.rowsAffected || 0) === 0) {
+        //     throw new DatabaseUnavailableError(`Failed to update admin role, please try again lateeeer`);
+        // }
         return await this.getById(id);
     }
 

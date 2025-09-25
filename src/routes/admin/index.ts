@@ -6,7 +6,6 @@ import { authMiddleware } from '../../middleware/auth';
 
 const router = Router();
 const adminController = new AdminController();
-const adminRoleController = new AdminRoleController();
 const { verifyToken, requireSuperAdmin, requireAdmin } = authMiddleware;
 
 // // for all admins
@@ -33,7 +32,7 @@ router.get('/:id', asyncHandler(adminController.getById));
 
 // for super-admin
 router.post('/',      asyncHandler(adminController.create));
-router.put('/:id',    asyncHandler(adminController.update));
+router.put('/:id',    verifyToken, requireAdmin, asyncHandler(adminController.update));
 router.delete('/:id', asyncHandler(adminController.delete));
 
 
