@@ -7,7 +7,6 @@ export class HazardService {
   
   async create(requestData: typeof Hazard.modelFor.createRequest, isUserLoggedIn: boolean): Promise<Hazard> {
     const newHazard = Hazard.fromRequestData(requestData);
-    
     const validation = newHazard.validate();
     if (!validation.isValid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
@@ -15,23 +14,22 @@ export class HazardService {
 
     const dbData = newHazard.toDatabaseFormat();
     let result;
-    if(isUserLoggedIn){
+    if (isUserLoggedIn) {
       result = await dbManager.executeQuery(
         `INSERT INTO ORGIL.HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
-        VALUES (:1, :2, :3, :4, :5)`,
+         VALUES (?, ?, ?, ?, ?)`,
         [
           dbData.USER_ID,
           dbData.TYPE_ID,
           dbData.LOCATION_ID,
           dbData.DESCRIPTION,
           dbData.SOLUTION,
-        ],
-        { autoCommit: true }
+        ]
       );
-    }else{
+    } else {
       result = await dbManager.executeQuery(
         `INSERT INTO ORGIL.HAZARD (USER_NAME, EMAIL, PHONE_NUMBER, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
-        VALUES (:1, :2, :3, :4, :5, :6, :7)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           dbData.USER_NAME,
           dbData.EMAIL,
@@ -40,11 +38,11 @@ export class HazardService {
           dbData.LOCATION_ID,
           dbData.DESCRIPTION,
           dbData.SOLUTION,
-        ],
-        { autoCommit: true }
+        ]
       );
     }
-    return result.rowsAffected && result.rowsAffected > 0 ? newHazard : Promise.reject('Failed to create hazard');
+    const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+    return packet.affectedRows > 0 ? newHazard : Promise.reject('Failed to create hazard');
   }
 
   
@@ -54,33 +52,28 @@ export class HazardService {
     enrichByUserInfo: boolean
   ): Promise<Hazard[]> {
     let result;
-
     let whereClause = '';
     if (includePrivateHazars !== false) {
       whereClause += ' WHERE ht.IS_PRIVATE = 0';
     }
 
-    // хэрэглэгчийн мэдээлэл special-admin, super-admin нарт харагдах ёстой. 
-    // hazard анх үүсэхэд user_id байсан тохиолдод user_name, email зэрэг нь хадгалагддаггүй,
-    // харин гадны хэрэглэгч hazard үүсгэсэн бол user_id байхгүй, нөгөө 3 нь байдаг
-    // доорх хэсэгт eoffice-ын дата базаас хэрэглэгчийн мэдээллийг татаж байна.
     let addSelect = '';
-      let addJoin = '';
-      if (enrichByUserInfo) {
-        addSelect += ' COALESCE(CAST(e.EMP_KEY AS NVARCHAR2(320)), CAST(h.USER_NAME AS NVARCHAR2(320))) AS USER_NAME, COALESCE(CAST(e.EMP_EMAIL AS NVARCHAR2(320)), CAST(h.EMAIL AS NVARCHAR2(320))) AS EMAIL, COALESCE(CAST(e.PHONE_MOBILE AS NVARCHAR2(20)), CAST(h.PHONE_NUMBER AS NVARCHAR2(20))) AS PHONE_NUMBER,';
-        addJoin += 'LEFT JOIN EOFFICE.EO_EMPLOYEES e ON h.USER_ID = e.EMP_ID';
-      } else {
-        addSelect += ' h.USER_NAME, h.EMAIL, h.PHONE_NUMBER,';
-      }
+    let addJoin = '';
+    if (enrichByUserInfo) {
+      addSelect += ' COALESCE(u.USER_NAME, h.USER_NAME) AS USER_NAME, COALESCE(u.EMAIL, h.EMAIL) AS EMAIL, COALESCE(u.PHONE_NUMBER, h.PHONE_NUMBER) AS PHONE_NUMBER,';
+      addJoin += ' LEFT JOIN USERS u ON h.USER_ID = u.ID';
+    } else {
+      addSelect += ' h.USER_NAME, h.EMAIL, h.PHONE_NUMBER,';
+    }
 
     if (!includeReference) {
       result = await dbManager.executeQuery(
         `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
-        FROM ORGIL.HAZARD h
-        ${addJoin}
-        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-        ${whereClause}
-        ORDER BY h.DATE_CREATED DESC`,
+         FROM ORGIL.HAZARD h
+         ${addJoin}
+         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         ${whereClause}
+         ORDER BY h.DATE_CREATED DESC`,
         []
       );
     } else {
@@ -89,21 +82,19 @@ export class HazardService {
           ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
           l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
           r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-        FROM ORGIL.HAZARD h
-        ${addJoin}
-        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-        INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-        LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
-        ${whereClause}
-        ORDER BY h.DATE_CREATED DESC`,
+         FROM ORGIL.HAZARD h
+         ${addJoin}
+         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
+         LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
+         ${whereClause}
+         ORDER BY h.DATE_CREATED DESC`,
         []
       );
     }
 
-    if (result.rows) {
-      return result.rows.map(row => Hazard.fromDatabase(row));
-    }
-    return [];
+    const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+    return rows.map(row => Hazard.fromDatabase(row));
   }
 
 
@@ -115,7 +106,7 @@ export class HazardService {
   ): Promise<Hazard> {
 
     let result;
-    let whereClause = 'WHERE h.ID = :1';
+    let whereClause = 'WHERE h.ID = ?';
     if (!includePrivateHazars) {
       whereClause += ' AND ht.IS_PRIVATE = 0';
     }
@@ -123,41 +114,41 @@ export class HazardService {
     let addSelect = '';
     let addInnerJoin = '';
     if (enrichByUserInfo) {
-  addSelect += ' COALESCE(CAST(e.EMP_KEY AS NVARCHAR2(320)), CAST(h.USER_NAME AS NVARCHAR2(320))) AS USER_NAME, COALESCE(CAST(e.EMP_EMAIL AS NVARCHAR2(320)), CAST(h.EMAIL AS NVARCHAR2(320))) AS EMAIL, COALESCE(CAST(e.PHONE_MOBILE AS NVARCHAR2(20)), CAST(h.PHONE_NUMBER AS NVARCHAR2(20))) AS PHONE_NUMBER,';
-      addInnerJoin += ' INNER JOIN EOFFICE.EO_EMPLOYEES e ON h.USER_ID = e.EMP_ID';
-    }else{
+      addSelect += ' COALESCE(u.USER_NAME, h.USER_NAME) AS USER_NAME, COALESCE(u.EMAIL, h.EMAIL) AS EMAIL, COALESCE(u.PHONE_NUMBER, h.PHONE_NUMBER) AS PHONE_NUMBER,';
+      addInnerJoin += ' LEFT JOIN USERS u ON h.USER_ID = u.ID';
+    } else {
       addSelect += ' h.USER_NAME, h.EMAIL, h.PHONE_NUMBER,';
     }
 
-    if(!includeReference){
+    if (!includeReference) {
       result = await dbManager.executeQuery(
         `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
-        FROM ORGIL.HAZARD h
-        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-        ${whereClause}`,
+         FROM ORGIL.HAZARD h
+         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         ${whereClause}`,
         [id]
       );
-    }else{
+    } else {
       result = await dbManager.executeQuery(
         `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED,
           ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
           l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
           r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-        FROM ORGIL.HAZARD h
-        ${addInnerJoin}
-        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-        INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-        LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
-        ${whereClause}`,
+         FROM ORGIL.HAZARD h
+         ${addInnerJoin}
+         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
+         LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
+         ${whereClause}`,
         [id]
       );
     }
 
-
-    if (!result.rows || result.rows.length === 0) {
+    const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+    if (!rows || rows.length === 0) {
       throw new NotFoundError(`Hazard not found`);
     }
-    return Hazard.fromDatabase(result.rows[0]);
+    return Hazard.fromDatabase(rows[0]);
   }
 
 async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
@@ -169,20 +160,17 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
         ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
         l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
         r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-      FROM ORGIL.HAZARD h
-      INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-      INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-      LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
-      INNER JOIN ORGIL.TASK_OWNERS towner ON h.ID = towner.HAZARD_ID
-      WHERE ht.IS_PRIVATE = 1 AND towner.ADMIN_ID = :1
-      ORDER BY h.DATE_CREATED DESC`,
+       FROM ORGIL.HAZARD h
+       INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+       INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
+       LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
+       INNER JOIN ORGIL.TASK_OWNERS towner ON h.ID = towner.HAZARD_ID
+       WHERE ht.IS_PRIVATE = 1 AND towner.ADMIN_ID = ?
+       ORDER BY h.DATE_CREATED DESC`,
       [adminId]
     );
-
-    if (result.rows) {
-      return result.rows.map(row => Hazard.fromDatabase(row));
-    }
-    return [];
+    const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+    return rows.map(row => Hazard.fromDatabase(row));
 }
 
 // Зөвхөн хэрэглэгч өөрөө үүсгэсэн hazard-уудыг буцаана. Ямар ч шүүлт хийгдэхгүй.
@@ -190,7 +178,7 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
     let result;
     if (!includeReference) {
       result = await dbManager.executeQuery(
-        `SELECT * FROM ORGIL.HAZARD h WHERE h.USER_ID = :1 ORDER BY h.DATE_CREATED DESC`,
+        `SELECT * FROM ORGIL.HAZARD h WHERE h.USER_ID = ? ORDER BY h.DATE_CREATED DESC`,
         [userId]
       );
     } else {
@@ -199,29 +187,26 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
           ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
           l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
           r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-        FROM ORGIL.HAZARD h
-        INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-        INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-        LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
-        WHERE h.USER_ID = :1
-        ORDER BY h.DATE_CREATED DESC`,
+         FROM ORGIL.HAZARD h
+         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
+         LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
+         WHERE h.USER_ID = ?
+         ORDER BY h.DATE_CREATED DESC`,
         [userId]
       );
     }
-    if (result.rows) {
-      return result.rows.map(row => Hazard.fromDatabase(row));
-    }
-    return [];
+    const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+    return rows.map(row => Hazard.fromDatabase(row));
   }
 
 
   async delete(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `DELETE FROM ORGIL.HAZARD WHERE ID = :1`,
-      [id],
-      { autoCommit: true }
+      `DELETE FROM ORGIL.HAZARD WHERE ID = ?`,
+      [id]
     );
-
-    return (result.rowsAffected || 0) > 0;
+    const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+    return packet.affectedRows > 0;
   }
 }

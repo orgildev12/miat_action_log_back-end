@@ -1,18 +1,23 @@
-import oracledb from 'oracledb';
-import { dbConfig, DatabaseConfig } from './src/config/db';
+import mysql, {
+  Pool,
+  PoolConnection,
+  PoolOptions,
+  RowDataPacket,
+  OkPacket,
+  ResultSetHeader,
+  FieldPacket,
+} from 'mysql2/promise';
 
-// Set Oracle client environment for UTF-8 support for Mongolian/Cyrillic text
-process.env.NLS_LANG = 'AMERICAN_AMERICA.AL32UTF8';
-process.env.NLS_NCHAR = 'AL32UTF8';
+import { dbConfig, DatabaseConfig } from './src/config/db';
 
 export class DatabaseManager {
   private static instance: DatabaseManager;
-  private pool: oracledb.Pool | null = null;
+  private pool: Pool | null = null;
   private config: DatabaseConfig;
 
   private constructor() {
-  // read-only copy from centralized config
-  this.config = { ...dbConfig.connection };
+    // read-only copy from centralized config
+    this.config = { ...dbConfig.connection };
   }
 
   public static getInstance(): DatabaseManager {
@@ -24,131 +29,95 @@ export class DatabaseManager {
 
   public async initialize(): Promise<void> {
     try {
-      // Configure Oracle client for proper character encoding
-      oracledb.fetchAsString = [oracledb.CLOB];
-      oracledb.fetchAsBuffer = [oracledb.BLOB];
-      
-      // Set Oracle client to use UTF-8 for all string operations
-      oracledb.stmtCacheSize = 40;
-      
-      // Initialize Oracle client with UTF-8 support
-      try {
-        oracledb.initOracleClient({
-          libDir: undefined, // Use default Oracle client
-        });
-      } catch (err) {
-        // Client might already be initialized, ignore
-        console.log('Oracle client already initialized or using Thin mode');
-      }
-      
-      this.pool = await oracledb.createPool({
+      this.pool = mysql.createPool({
+        host: this.config.host,
+        port: this.config.port,
         user: this.config.user,
         password: this.config.password,
-        connectString: this.config.connectString,
-        poolMin: dbConfig.pool.poolMin,
-        poolMax: dbConfig.pool.poolMax,
-        poolIncrement: dbConfig.pool.poolIncrement,
-        poolTimeout: dbConfig.pool.poolTimeout,
-      });
-      
-      console.log('✅ Oracle Database connection pool created successfully');
+        database: this.config.database,
+        waitForConnections: true,
+        connectionLimit: dbConfig.pool.poolMax || 10,
+        queueLimit: 0,
+        charset: 'utf8mb4_general_ci', // ✅ proper UTF-8 support
+      } as PoolOptions);
+
+      console.log('✅ MySQL Database connection pool created successfully');
     } catch (error) {
-      console.error('❌ Error creating Oracle Database connection pool:', error);
+      console.error('❌ Error creating MySQL Database connection pool:', error);
       throw error;
     }
   }
 
-  public async executeQuery<T = any>(
-    sql: string, 
-    binds: any[] = [], 
-    options: oracledb.ExecuteOptions = {}
-  ): Promise<oracledb.Result<T>> {
+  public async executeQuery(
+    sql: string,
+    binds: any[] = []
+  ): Promise<{
+    rows: RowDataPacket[] | OkPacket | ResultSetHeader;
+    fields: FieldPacket[];
+  }> {
     if (!this.pool) {
       throw new Error('Database pool not initialized');
     }
 
-    let connection: oracledb.Connection | undefined;
-    
+    let connection: PoolConnection | undefined;
     try {
       connection = await this.pool.getConnection();
-      
-      // Set connection-level character encoding for this session
-      
-      // Process bind parameters to ensure proper UTF-8 encoding for Oracle
-      const processedBinds = binds.map(bind => {
-        if (typeof bind === 'string') {
-          return {
-            val: bind,
-            type: oracledb.STRING,
-            maxSize: bind ? bind.length * 4 : 4000 // Fallback if bind is empty
-          };
-        }
-        if (bind === undefined) return null;
-        return bind;
-      });
-      
-      const defaultOptions: oracledb.ExecuteOptions = {
-        outFormat: oracledb.OUT_FORMAT_OBJECT,
-        autoCommit: true,
-        // Ensure proper handling of Unicode/UTF-8 data
-        fetchInfo: {},
-        ...options
-      };
-      
-      const result = await connection.execute<T>(sql, processedBinds, defaultOptions);
-      return result;
+      const [rows, fields] = await connection.query<
+        RowDataPacket[] | OkPacket | ResultSetHeader
+      >(sql, binds);
+
+      return { rows, fields };
     } catch (error) {
       console.error('Database query error:', error);
       throw error;
     } finally {
       if (connection) {
-        try {
-          await connection.close();
-        } catch (error) {
-          console.error('Error closing connection:', error);
-        }
+        connection.release();
       }
     }
   }
 
   public async executeMany(
     sql: string,
-    binds: any[][],
-    options: oracledb.ExecuteManyOptions = {}
-  ): Promise<oracledb.Results<any>> {
+    binds: any[][]
+  ): Promise<ResultSetHeader> {
     if (!this.pool) {
       throw new Error('Database pool not initialized');
     }
 
-    let connection: oracledb.Connection | undefined;
-    
+    let connection: PoolConnection | undefined;
     try {
       connection = await this.pool.getConnection();
-      
-      const defaultOptions: oracledb.ExecuteManyOptions = {
-        autoCommit: true,
-        ...options
-      };
-      
-      const result = await connection.executeMany(sql, binds, defaultOptions);
+      await connection.beginTransaction();
+
+      let result: ResultSetHeader = { affectedRows: 0, insertId: 0, warningStatus: 0 } as ResultSetHeader;
+
+      for (const bind of binds) {
+        const [res] = await connection.query<ResultSetHeader>(sql, bind);
+        result.affectedRows += res.affectedRows;
+        if (res.insertId > 0) {
+          result.insertId = res.insertId; // last insert ID
+        }
+      }
+
+      await connection.commit();
       return result;
     } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
       console.error('Database executeMany error:', error);
       throw error;
     } finally {
       if (connection) {
-        try {
-          await connection.close();
-        } catch (error) {
-          console.error('Error closing connection:', error);
-        }
+        connection.release();
       }
     }
   }
 
   public async testConnection(): Promise<boolean> {
     try {
-      const result = await this.executeQuery('SELECT SYSDATE FROM DUAL');
+      const result = await this.executeQuery('SELECT NOW() as now');
       console.log('✅ Database connection test successful:', result.rows);
       return true;
     } catch (error) {
@@ -160,7 +129,7 @@ export class DatabaseManager {
   public async close(): Promise<void> {
     if (this.pool) {
       try {
-        await this.pool.close();
+        await this.pool.end();
         console.log('✅ Database pool closed successfully');
       } catch (error) {
         console.error('❌ Error closing database pool:', error);

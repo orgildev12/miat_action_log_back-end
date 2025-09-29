@@ -14,27 +14,27 @@ export class LocationGroupService {
         const dbData = newLocationGroup.toDatabaseFormat();
         const result = await dbManager.executeQuery(
             `INSERT INTO ORGIL.LOCATION_GROUP (NAME_EN, NAME_MN)
-             VALUES (:1, :2)`,
+             VALUES (?, ?)`,
             [
                 dbData.NAME_EN,
                 dbData.NAME_MN
-            ],
-            { autoCommit: true }
+            ]
         );
-        if ((result.rowsAffected || 0) === 0) {
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        if (packet.affectedRows === 0) {
             throw new Error('Failed to create location group');
         }
-        // We don't get rows back from INSERT; return the validated model or re-fetch if needed
         return newLocationGroup;
     }
 
     async getById(id: number): Promise<LocationGroup> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM ORGIL.LOCATION_GROUP WHERE ID = :1`, 
+            `SELECT * FROM ORGIL.LOCATION_GROUP WHERE ID = ?`, 
             [id]
         );
-        if (result.rows && result.rows.length > 0) {
-            return LocationGroup.fromDatabase(result.rows[0]);
+        const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+        if (rows.length > 0) {
+            return LocationGroup.fromDatabase(rows[0]);
         }
         throw new NotFoundError(`Location group with id: ${id} not found`);
     }
@@ -44,11 +44,8 @@ export class LocationGroupService {
             `SELECT * FROM ORGIL.LOCATION_GROUP ORDER BY NAME_EN`, 
             []
         );
-
-        if (result.rows) {
-            return result.rows.map(row => LocationGroup.fromDatabase(row));
-        }
-        return [];
+        const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+        return rows.map(row => LocationGroup.fromDatabase(row));
     }
 
     async update(id: number, updateData: typeof LocationGroup.modelFor.updateRequest): Promise<LocationGroup> {
@@ -63,17 +60,16 @@ export class LocationGroupService {
         const dbData = existingLocationGroup.toDatabaseFormat();
         const result = await dbManager.executeQuery(
             `UPDATE ORGIL.LOCATION_GROUP
-             SET NAME_EN = :1, NAME_MN = :2
-             WHERE ID = :3`,
+             SET NAME_EN = ?, NAME_MN = ?
+             WHERE ID = ?`,
             [
                 dbData.NAME_EN,
                 dbData.NAME_MN,
                 id
-            ],
-            { autoCommit: true }
+            ]
         );
-        
-        if ((result.rowsAffected || 0) === 0) {
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        if (packet.affectedRows === 0) {
             throw new NotFoundError(`Location group with ID ${id} not found`);
         }
         return await this.getById(id);
@@ -81,10 +77,10 @@ export class LocationGroupService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM ORGIL.LOCATION_GROUP WHERE ID = :1`,
-            [id],
-            { autoCommit: true }
+            `DELETE FROM ORGIL.LOCATION_GROUP WHERE ID = ?`,
+            [id]
         );
-        return (result.rowsAffected || 0) > 0;
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        return packet.affectedRows > 0;
     }
 }

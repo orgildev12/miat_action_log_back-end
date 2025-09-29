@@ -8,6 +8,23 @@ import { authMiddleware } from '../middleware/auth';
 export class UserController {
     private userService = new UserService();
 
+    createUser = async (req: Request, res: Response): Promise<void> => {
+        const crypto = require('crypto');
+        const requestData: typeof User.modelFor.createRequest = { ...req.body };
+        const result = await this.userService.getUserByUsername(requestData.user_name);
+        if (result) {
+            throw new AuthError('Username already exists');
+        }
+        if (requestData.password) {
+            requestData.password = crypto.createHash('md5').update(requestData.password).digest('hex');
+        }
+        if (requestData.pin) {
+            requestData.pin = crypto.createHash('md5').update(requestData.pin).digest('hex');
+        }
+        const createdUser = await this.userService.create(requestData);
+        res.status(201).json(createdUser.toJSON());
+    };
+
     authenticateUser = async (req: Request, res: Response): Promise<void> => {
         const requestData = req.body as typeof User.modelFor.authRequest;
         const validation = User.validateAuthRequest(requestData);

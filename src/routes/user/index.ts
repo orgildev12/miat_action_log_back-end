@@ -7,6 +7,7 @@ const router = Router();
 const userController = new UserController();
 const verifyToken = authMiddleware.verifyToken;
 
+router.post('/', asyncHandler(userController.createUser));
 router.post('/auth', asyncHandler(userController.authenticateUser));
 router.get('/:id', verifyToken, asyncHandler(userController.getUserById));
 

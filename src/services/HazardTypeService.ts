@@ -14,19 +14,18 @@ export class HazardTypeService {
         const dbData = newHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
             `INSERT INTO ORGIL.HAZARD_TYPE (SHORT_CODE, NAME_EN, NAME_MN, IS_PRIVATE)
-             VALUES (:1, :2, :3, :4)`,
+             VALUES (?, ?, ?, ?)`,
             [
                 dbData.SHORT_CODE,
                 dbData.NAME_EN,
                 dbData.NAME_MN,
                 dbData.IS_PRIVATE
-            ],
-            { autoCommit: true }
+            ]
         );
-        if ((result.rowsAffected || 0) === 0) {
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        if (packet.affectedRows === 0) {
             throw new Error('Failed to create hazard_type');
         }
-        // INSERT doesn't return rows; return the constructed model or re-fetch
         return new HazardType({
             short_code: newHazardType.short_code,
             name_en: newHazardType.name_en,
@@ -37,11 +36,12 @@ export class HazardTypeService {
 
     async getById(id: number): Promise<HazardType> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM ORGIL.HAZARD_TYPE WHERE ID = :1`, 
+            `SELECT * FROM ORGIL.HAZARD_TYPE WHERE ID = ?`, 
             [id]
         );
-        if (result.rows && result.rows.length > 0) {
-            return HazardType.fromDatabase(result.rows[0]);
+        const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+        if (rows.length > 0) {
+            return HazardType.fromDatabase(rows[0]);
         }
         throw new NotFoundError(`HazardType with id: ${id} not found`);
     }
@@ -51,11 +51,8 @@ export class HazardTypeService {
             `SELECT * FROM ORGIL.HAZARD_TYPE ORDER BY NAME_MN`, 
             []
         );
-
-        if (result.rows) {
-            return result.rows.map(row => HazardType.fromDatabase(row));
-        }
-        return [];
+        const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+        return rows.map(row => HazardType.fromDatabase(row));
     }
 
     async update(id: number, updateData: typeof HazardType.modelFor.updateRequest): Promise<HazardType> {
@@ -70,19 +67,18 @@ export class HazardTypeService {
         const dbData = existingHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
             `UPDATE ORGIL.HAZARD_TYPE
-             SET SHORT_CODE = :1, NAME_EN = :2, NAME_MN = :3, IS_PRIVATE = :4
-             WHERE ID = :4`,
+             SET SHORT_CODE = ?, NAME_EN = ?, NAME_MN = ?, IS_PRIVATE = ?
+             WHERE ID = ?`,
             [
                 dbData.SHORT_CODE,
                 dbData.NAME_EN,
                 dbData.NAME_MN,
                 dbData.IS_PRIVATE,
                 id
-            ],
-            { autoCommit: true }
+            ]
         );
-        
-        if ((result.rowsAffected || 0) === 0) {
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        if (packet.affectedRows === 0) {
             throw new NotFoundError(`HazardType with ID ${id} not found`);
         }
         return await this.getById(id);
@@ -90,10 +86,10 @@ export class HazardTypeService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM ORGIL.HAZARD_TYPE WHERE ID = :1`,
-            [id],
-            { autoCommit: true }
+            `DELETE FROM ORGIL.HAZARD_TYPE WHERE ID = ?`,
+            [id]
         );
-        return (result.rowsAffected || 0) > 0;
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        return packet.affectedRows > 0;
     }
 }

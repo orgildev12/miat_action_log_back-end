@@ -14,18 +14,17 @@ export class LocationService {
         const dbData = newLocation.toDatabaseFormat();
         const result = await dbManager.executeQuery(
             `INSERT INTO ORGIL.LOCATION (NAME_EN, NAME_MN, LOCATION_GROUP_ID)
-             VALUES (:1, :2, :3)`,
+             VALUES (?, ?, ?)`,
             [
                 dbData.NAME_EN,
                 dbData.NAME_MN,
                 dbData.LOCATION_GROUP_ID
-            ],
-            { autoCommit: true }
+            ]
         );
-        if ((result.rowsAffected || 0) === 0) {
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        if (packet.affectedRows === 0) {
             throw new Error('Failed to create location');
         }
-        // INSERT doesn't return rows; return the constructed model or re-fetch
         return new Location({
             id: undefined,
             name_en: newLocation.name_en,
@@ -38,7 +37,7 @@ export class LocationService {
         let result;
         if (!includeReference) {
             result = await dbManager.executeQuery(
-                `SELECT * FROM ORGIL.LOCATION WHERE ID = :1`,
+                `SELECT * FROM ORGIL.LOCATION WHERE ID = ?`,
                 [id]
             );
         } else {
@@ -46,12 +45,13 @@ export class LocationService {
                 `SELECT l.*, lg.NAME_EN AS GROUP_NAME_EN, lg.NAME_MN AS GROUP_NAME_MN
                 FROM ORGIL.LOCATION l
                 LEFT OUTER JOIN ORGIL.LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
-                WHERE l.ID = :1`,
+                WHERE l.ID = ?`,
                 [id]
             );
         }
-        if (result.rows && result.rows.length > 0) {
-            return Location.fromDatabase(result.rows[0]);
+        const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+        if (rows.length > 0) {
+            return Location.fromDatabase(rows[0]);
         }
         throw new NotFoundError(`Location with id: ${id} not found`);
     }
@@ -73,10 +73,8 @@ export class LocationService {
                 []
             );
         }
-        if (result.rows) {
-            return result.rows.map(row => Location.fromDatabase(row));
-        }
-        return [];
+        const rows = result.rows as import('mysql2/promise').RowDataPacket[];
+        return rows.map(row => Location.fromDatabase(row));
     }
 
     async update(id: number, updateData: typeof Location.modelFor.updateRequest): Promise<Location> {
@@ -91,18 +89,17 @@ export class LocationService {
         const dbData = existingLocation.toDatabaseFormat();
         const result = await dbManager.executeQuery(
             `UPDATE ORGIL.LOCATION
-             SET NAME_EN = :1, NAME_MN = :2, LOCATION_GROUP_ID = :3
-             WHERE ID = :4`,
+             SET NAME_EN = ?, NAME_MN = ?, LOCATION_GROUP_ID = ?
+             WHERE ID = ?`,
             [
                 dbData.NAME_EN,
                 dbData.NAME_MN,
                 dbData.LOCATION_GROUP_ID,
                 id
-            ],
-            { autoCommit: true }
+            ]
         );
-        
-        if ((result.rowsAffected || 0) === 0) {
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        if (packet.affectedRows === 0) {
             throw new NotFoundError(`Location with ID ${id} not found`);
         }
         return await this.getById(id);
@@ -110,10 +107,10 @@ export class LocationService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM ORGIL.LOCATION WHERE ID = :1`,
-            [id],
-            { autoCommit: true }
+            `DELETE FROM ORGIL.LOCATION WHERE ID = ?`,
+            [id]
         );
-        return (result.rowsAffected || 0) > 0;
+        const packet = result.rows as import('mysql2/promise').ResultSetHeader;
+        return packet.affectedRows > 0;
     }
 }
