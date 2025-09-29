@@ -13,7 +13,7 @@ export class HazardTypeService {
 
         const dbData = newHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO ORGIL.HAZARD_TYPE (SHORT_CODE, NAME_EN, NAME_MN, IS_PRIVATE)
+            `INSERT INTO HAZARD_TYPE (SHORT_CODE, NAME_EN, NAME_MN, IS_PRIVATE)
              VALUES (?, ?, ?, ?)`,
             [
                 dbData.SHORT_CODE,
@@ -36,7 +36,7 @@ export class HazardTypeService {
 
     async getById(id: number): Promise<HazardType> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM ORGIL.HAZARD_TYPE WHERE ID = ?`, 
+            `SELECT * FROM HAZARD_TYPE WHERE ID = ?`, 
             [id]
         );
         const rows = result.rows as import('mysql2/promise').RowDataPacket[];
@@ -48,7 +48,7 @@ export class HazardTypeService {
 
     async getAll(): Promise<HazardType[]> {
         const result = await dbManager.executeQuery(
-            `SELECT * FROM ORGIL.HAZARD_TYPE ORDER BY NAME_MN`, 
+            `SELECT * FROM HAZARD_TYPE ORDER BY NAME_MN`, 
             []
         );
         const rows = result.rows as import('mysql2/promise').RowDataPacket[];
@@ -66,7 +66,7 @@ export class HazardTypeService {
 
         const dbData = existingHazardType.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `UPDATE ORGIL.HAZARD_TYPE
+            `UPDATE HAZARD_TYPE
              SET SHORT_CODE = ?, NAME_EN = ?, NAME_MN = ?, IS_PRIVATE = ?
              WHERE ID = ?`,
             [
@@ -86,7 +86,7 @@ export class HazardTypeService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM ORGIL.HAZARD_TYPE WHERE ID = ?`,
+            `DELETE FROM HAZARD_TYPE WHERE ID = ?`,
             [id]
         );
         const packet = result.rows as import('mysql2/promise').ResultSetHeader;

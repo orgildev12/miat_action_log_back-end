@@ -13,7 +13,7 @@ export class LocationService {
 
         const dbData = newLocation.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `INSERT INTO ORGIL.LOCATION (NAME_EN, NAME_MN, LOCATION_GROUP_ID)
+            `INSERT INTO LOCATION (NAME_EN, NAME_MN, LOCATION_GROUP_ID)
              VALUES (?, ?, ?)`,
             [
                 dbData.NAME_EN,
@@ -37,14 +37,14 @@ export class LocationService {
         let result;
         if (!includeReference) {
             result = await dbManager.executeQuery(
-                `SELECT * FROM ORGIL.LOCATION WHERE ID = ?`,
+                `SELECT * FROM LOCATION WHERE ID = ?`,
                 [id]
             );
         } else {
             result = await dbManager.executeQuery(
                 `SELECT l.*, lg.NAME_EN AS GROUP_NAME_EN, lg.NAME_MN AS GROUP_NAME_MN
-                FROM ORGIL.LOCATION l
-                LEFT OUTER JOIN ORGIL.LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
+                FROM LOCATION l
+                LEFT OUTER JOIN LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
                 WHERE l.ID = ?`,
                 [id]
             );
@@ -61,14 +61,14 @@ export class LocationService {
         let result;
         if (!includeReference) {
             result = await dbManager.executeQuery(
-                `SELECT * FROM ORGIL.LOCATION ORDER BY NAME_EN`,
+                `SELECT * FROM LOCATION ORDER BY NAME_EN`,
                 []
             );
         } else {
             result = await dbManager.executeQuery(
                 `SELECT l.*, lg.NAME_EN AS GROUP_NAME_EN, lg.NAME_MN AS GROUP_NAME_MN
-                 FROM ORGIL.LOCATION l
-                 LEFT OUTER JOIN ORGIL.LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
+                 FROM LOCATION l
+                 LEFT OUTER JOIN LOCATION_GROUP lg ON l.LOCATION_GROUP_ID = lg.ID
                  ORDER BY l.NAME_EN`,
                 []
             );
@@ -88,7 +88,7 @@ export class LocationService {
 
         const dbData = existingLocation.toDatabaseFormat();
         const result = await dbManager.executeQuery(
-            `UPDATE ORGIL.LOCATION
+            `UPDATE LOCATION
              SET NAME_EN = ?, NAME_MN = ?, LOCATION_GROUP_ID = ?
              WHERE ID = ?`,
             [
@@ -107,7 +107,7 @@ export class LocationService {
 
     async delete(id: number): Promise<boolean> {
         const result = await dbManager.executeQuery(
-            `DELETE FROM ORGIL.LOCATION WHERE ID = ?`,
+            `DELETE FROM LOCATION WHERE ID = ?`,
             [id]
         );
         const packet = result.rows as import('mysql2/promise').ResultSetHeader;

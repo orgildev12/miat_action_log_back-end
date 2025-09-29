@@ -13,7 +13,7 @@ export class AdminRoleService {
 
     const dbData = promptValues.toDatabaseFormat();
     const result = await dbManager.executeQuery(
-      `INSERT INTO ORGIL.ADMIN_ROLE (ROLE_NAME) VALUES (?)`,
+      `INSERT INTO ADMIN_ROLE (ROLE_NAME) VALUES (?)`,
       [dbData.ROLE_NAME]
     );
 
@@ -29,7 +29,7 @@ export class AdminRoleService {
 
   async getById(id: number): Promise<AdminRole> {
     const result = await dbManager.executeQuery(
-      `SELECT * FROM ORGIL.ADMIN_ROLE WHERE ID = ?`,
+      `SELECT * FROM ADMIN_ROLE WHERE ID = ?`,
       [id]
     );
 
@@ -42,7 +42,7 @@ export class AdminRoleService {
 
   async getAll(): Promise<AdminRole[]> {
     const result = await dbManager.executeQuery(
-      `SELECT * FROM ORGIL.ADMIN_ROLE`,
+      `SELECT * FROM ADMIN_ROLE`,
       []
     );
 
@@ -61,7 +61,7 @@ export class AdminRoleService {
 
     const dbData = existingRole.toDatabaseFormat();
     const result = await dbManager.executeQuery(
-      `UPDATE ORGIL.ADMIN_ROLE SET ROLE_NAME = ? WHERE ID = ?`,
+      `UPDATE ADMIN_ROLE SET ROLE_NAME = ? WHERE ID = ?`,
       [dbData.ROLE_NAME, id]
     );
 
@@ -75,7 +75,7 @@ export class AdminRoleService {
 
   async delete(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `DELETE FROM ORGIL.ADMIN_ROLE WHERE ID = ?`,
+      `DELETE FROM ADMIN_ROLE WHERE ID = ?`,
       [id]
     );
 

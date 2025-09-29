@@ -15,7 +15,7 @@ export class AdminService {
 
     // INSERT query for MySQL
     const result = await dbManager.executeQuery(
-      `INSERT INTO ORGIL.ADMIN (USER_ID, ROLE_ID) VALUES (?, ?)`,
+      `INSERT INTO ADMIN (USER_ID, ROLE_ID) VALUES (?, ?)`,
       [dbData.USER_ID, dbData.ROLE_ID]
     );
 
@@ -33,8 +33,8 @@ export class AdminService {
   async getById(id: number): Promise<Admin> {
     const result = await dbManager.executeQuery(
       `SELECT a.*, r.ROLE_NAME, u.USER_NAME
-       FROM ORGIL.ADMIN a
-       INNER JOIN ORGIL.ADMIN_ROLE r ON a.ROLE_ID = r.ID
+       FROM ADMIN a
+       INNER JOIN ADMIN_ROLE r ON a.ROLE_ID = r.ID
        INNER JOIN USERS u ON a.USER_ID = u.ID
        WHERE a.ID = ?`,
       [id]
@@ -50,8 +50,8 @@ export class AdminService {
   async getByUserId(id: number): Promise<Admin> {
     const result = await dbManager.executeQuery(
       `SELECT a.*, r.ROLE_NAME, u.USER_NAME 
-       FROM ORGIL.ADMIN a
-       INNER JOIN ORGIL.ADMIN_ROLE r ON a.ROLE_ID = r.ID
+       FROM ADMIN a
+       INNER JOIN ADMIN_ROLE r ON a.ROLE_ID = r.ID
        INNER JOIN USERS u ON a.USER_ID = u.ID
        WHERE a.USER_ID = ?`,
       [id]
@@ -67,8 +67,8 @@ export class AdminService {
   async getAll(): Promise<Admin[]> {
     const result = await dbManager.executeQuery(
       `SELECT a.*, r.ROLE_NAME, u.USER_NAME
-       FROM ORGIL.ADMIN a
-       INNER JOIN ORGIL.ADMIN_ROLE r ON a.ROLE_ID = r.ID
+       FROM ADMIN a
+       INNER JOIN ADMIN_ROLE r ON a.ROLE_ID = r.ID
        INNER JOIN USERS u ON a.USER_ID = u.ID`,
       []
     );
@@ -89,7 +89,7 @@ export class AdminService {
     const dbData = existingAdmin.toDatabaseFormat();
 
     const result = await dbManager.executeQuery(
-      `UPDATE ORGIL.ADMIN SET ROLE_ID = ? WHERE ID = ?`,
+      `UPDATE ADMIN SET ROLE_ID = ? WHERE ID = ?`,
       [dbData.ROLE_ID, id]
     );
 
@@ -103,7 +103,7 @@ export class AdminService {
 
   async delete(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `DELETE FROM ORGIL.ADMIN WHERE ID = ?`,
+      `DELETE FROM ADMIN WHERE ID = ?`,
       [id]
     );
 
@@ -113,7 +113,7 @@ export class AdminService {
 
   async checkIsAdmin(userId: number): Promise<number | null> {
     const result = await dbManager.executeQuery(
-      `SELECT ID FROM ORGIL.ADMIN WHERE USER_ID = ?`,
+      `SELECT ID FROM ADMIN WHERE USER_ID = ?`,
       [userId]
     );
 

@@ -16,7 +16,7 @@ export class HazardService {
     let result;
     if (isUserLoggedIn) {
       result = await dbManager.executeQuery(
-        `INSERT INTO ORGIL.HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
+        `INSERT INTO HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
          VALUES (?, ?, ?, ?, ?)`,
         [
           dbData.USER_ID,
@@ -28,7 +28,7 @@ export class HazardService {
       );
     } else {
       result = await dbManager.executeQuery(
-        `INSERT INTO ORGIL.HAZARD (USER_NAME, EMAIL, PHONE_NUMBER, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
+        `INSERT INTO HAZARD (USER_NAME, EMAIL, PHONE_NUMBER, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           dbData.USER_NAME,
@@ -69,9 +69,9 @@ export class HazardService {
     if (!includeReference) {
       result = await dbManager.executeQuery(
         `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
-         FROM ORGIL.HAZARD h
+         FROM HAZARD h
          ${addJoin}
-         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         INNER JOIN HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
          ${whereClause}
          ORDER BY h.DATE_CREATED DESC`,
         []
@@ -82,11 +82,11 @@ export class HazardService {
           ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
           l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
           r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-         FROM ORGIL.HAZARD h
+         FROM HAZARD h
          ${addJoin}
-         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-         INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-         LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
+         INNER JOIN HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         INNER JOIN LOCATION l ON h.LOCATION_ID = l.ID
+         LEFT JOIN RESPONSE r ON h.ID = r.HAZARD_ID
          ${whereClause}
          ORDER BY h.DATE_CREATED DESC`,
         []
@@ -123,8 +123,8 @@ export class HazardService {
     if (!includeReference) {
       result = await dbManager.executeQuery(
         `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
-         FROM ORGIL.HAZARD h
-         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         FROM HAZARD h
+         INNER JOIN HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
          ${whereClause}`,
         [id]
       );
@@ -134,11 +134,11 @@ export class HazardService {
           ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
           l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
           r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-         FROM ORGIL.HAZARD h
+         FROM HAZARD h
          ${addInnerJoin}
-         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-         INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-         LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
+         INNER JOIN HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         INNER JOIN LOCATION l ON h.LOCATION_ID = l.ID
+         LEFT JOIN RESPONSE r ON h.ID = r.HAZARD_ID
          ${whereClause}`,
         [id]
       );
@@ -160,11 +160,11 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
         ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
         l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
         r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-       FROM ORGIL.HAZARD h
-       INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-       INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-       LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
-       INNER JOIN ORGIL.TASK_OWNERS towner ON h.ID = towner.HAZARD_ID
+       FROM HAZARD h
+       INNER JOIN HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+       INNER JOIN LOCATION l ON h.LOCATION_ID = l.ID
+       LEFT JOIN RESPONSE r ON h.ID = r.HAZARD_ID
+       INNER JOIN TASK_OWNERS towner ON h.ID = towner.HAZARD_ID
        WHERE ht.IS_PRIVATE = 1 AND towner.ADMIN_ID = ?
        ORDER BY h.DATE_CREATED DESC`,
       [adminId]
@@ -178,7 +178,7 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
     let result;
     if (!includeReference) {
       result = await dbManager.executeQuery(
-        `SELECT * FROM ORGIL.HAZARD h WHERE h.USER_ID = ? ORDER BY h.DATE_CREATED DESC`,
+        `SELECT * FROM HAZARD h WHERE h.USER_ID = ? ORDER BY h.DATE_CREATED DESC`,
         [userId]
       );
     } else {
@@ -187,10 +187,10 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
           ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
           l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
           r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
-         FROM ORGIL.HAZARD h
-         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
-         INNER JOIN ORGIL.LOCATION l ON h.LOCATION_ID = l.ID
-         LEFT JOIN ORGIL.RESPONSE r ON h.ID = r.HAZARD_ID
+         FROM HAZARD h
+         INNER JOIN HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
+         INNER JOIN LOCATION l ON h.LOCATION_ID = l.ID
+         LEFT JOIN RESPONSE r ON h.ID = r.HAZARD_ID
          WHERE h.USER_ID = ?
          ORDER BY h.DATE_CREATED DESC`,
         [userId]
@@ -203,7 +203,7 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
 
   async delete(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `DELETE FROM ORGIL.HAZARD WHERE ID = ?`,
+      `DELETE FROM HAZARD WHERE ID = ?`,
       [id]
     );
     const packet = result.rows as import('mysql2/promise').ResultSetHeader;
