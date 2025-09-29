@@ -17,6 +17,7 @@ export class HazardController {
         if(requestData.user_id){
             delete requestData.user_id
         }
+        console.log(requestData);
         const createdHazard = await this.hazardService.create(requestData, false);
         res.status(201).json(createdHazard);
     };
