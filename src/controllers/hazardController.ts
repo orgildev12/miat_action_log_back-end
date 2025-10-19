@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { HazardService } from '../services/HazardService';
+import { HazardService } from '../services/HazardService'
 import { Hazard } from '../models/Hazard';
-import { AuthError, ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError } from '../middleware/errorHandler/errorTypes';
+import { AuthError, ConflictError, DatabaseUnavailableError, ForbiddenError, NotFoundError, ValidationError } from '../middleware/errorHandler/errorTypes';
 import { TaskOwnerService } from '../services/TaskOwnerService';
 import { UserService } from '../services/UserService';
 import { AdminService } from '../services/AdminService';
@@ -17,6 +17,14 @@ export class HazardController {
         if(requestData.user_id){
             delete requestData.user_id
         }
+        
+        const hazard = Hazard.fromRequestData(requestData);
+        hazard.validate();
+        const validation = hazard.validate();
+        if (!validation.isValid) {
+            throw new ValidationError(validation.errors.join(', '));
+        }
+
         console.log(requestData);
         const createdHazard = await this.hazardService.create(requestData, false);
         res.status(201).json(createdHazard);
@@ -25,6 +33,14 @@ export class HazardController {
 
     create = async (req: Request, res: Response): Promise<void> => {
         const requestData: typeof Hazard.modelFor.createRequest = req.body;
+
+        const hazard = Hazard.fromRequestData(requestData);
+        hazard.validate();
+        const validation = hazard.validate();
+        if (!validation.isValid) {
+            throw new ValidationError(validation.errors.join(', '));
+        }
+
         if(requestData.user_id === undefined){
             throw new AuthError('Access denied');
         }

@@ -62,6 +62,9 @@ export class HazardTypeService {
         const existingHazardType = await this.getById(id);
         existingHazardType.updateWith(updateData);
 
+        console.log('Update Data:', updateData);
+        console.log('Existing HazardType before update:', existingHazardType);
+
         const validation = existingHazardType.validate();
         if (!validation.isValid) {
             throw new ValidationError(validation.errors);

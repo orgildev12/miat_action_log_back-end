@@ -52,7 +52,7 @@ export class ResponseService {
 // Update methods
   async startAnalysis(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `UPDATE ORGIL.RESPONSE SET IS_STARTED = 1, CURRENT_STATUS = 'Ажиллаж байгаа', DATE_UPDATED = SYSDATE WHERE HAZARD_ID = :1`,
+      `UPDATE ORGIL.RESPONSE SET IS_STARTED = 1, IS_RESPONSE_CONFIRMED = 0, DATE_UPDATED = SYSDATE WHERE HAZARD_ID = :1`,
       [ id ],
       { autoCommit: true }
     );

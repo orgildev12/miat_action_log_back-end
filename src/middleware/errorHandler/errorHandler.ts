@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ValidationError, NotFoundError, ConflictError, ForbiddenError, GenericError, DatabaseUnavailableError } from './errorTypes';
+import { ValidationError, NotFoundError, ConflictError, ForbiddenError, GenericError, DatabaseUnavailableError, AuthError } from './errorTypes';
 
 const errorHandler = (
   err: any,
@@ -17,6 +17,10 @@ const errorHandler = (
     return res.status(err.status).json({ name: err.name, message: err.message });
   }
 
+  if (err instanceof AuthError) {
+    return res.status(err.status).json({ name: err.name, message: err.message });
+  }
+  
   if (err instanceof ConflictError) {
     return res.status(err.status).json({ name: err.name, message: err.message });
   }

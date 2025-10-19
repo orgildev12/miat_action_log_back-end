@@ -17,7 +17,7 @@ const HazardSchema = z.object({
     type_id: z.number().int().positive('Type ID must be a positive integer'), 
     location_id: z.number().int().positive('Location ID must be a positive integer'),
     description: z.string()
-        .min(1, 'Description is required')
+        .min(5, 'Description is required')
         .max(1000, 'Description must be 1000 characters or less')
         .trim(),
     solution: z.string()

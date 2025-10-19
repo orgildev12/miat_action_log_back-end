@@ -173,8 +173,13 @@ AFTER UPDATE OF is_response_confirmed ON response
 FOR EACH ROW
 BEGIN
     IF :NEW.is_response_confirmed = 1 THEN
-        UPDATE hazard SET status_en = 'Solved', status_mn = N'Шийдэгдсэн'
-        WHERE id = :NEW.hazard_id;
+        IF :NEW.CURRENT_STATUS = N'Татгалзсан' THEN
+            UPDATE hazard SET status_en = 'Rejected', status_mn = N'Татгалзсан'
+            WHERE id = :NEW.hazard_id;
+        ELSE 
+            UPDATE hazard SET status_en = 'Solved', status_mn = N'Шийдэгдсэн'
+            WHERE id = :NEW.hazard_id;
+        END IF;
     ELSE
         UPDATE hazard SET status_en = 'On it', status_mn = N'Ажиллаж байна'
         WHERE id = :NEW.hazard_id;
@@ -191,4 +196,4 @@ BEGIN
     DELETE FROM task_owners WHERE hazard_id = :OLD.id;
     DELETE FROM hazard_image WHERE hazard_id = :OLD.id;
 END;
-/ 
+/

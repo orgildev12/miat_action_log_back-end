@@ -14,7 +14,9 @@ const HazardTypeSchema = z.object({
         .min(1, 'Mongolian name is required')
         .max(100, 'Mongolian name must be 100 characters or less')
         .trim(),
-    isPrivate: z.number().int().min(0).max(1),
+    isPrivate: z.number().int().refine(value => value === 0 || value === 1, {
+        message: 'isPrivate must be either 0 or 1'
+    }),
     last_index: z.number().int().positive().optional()
 });
 
