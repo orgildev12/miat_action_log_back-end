@@ -1,51 +1,76 @@
 import is from 'zod/v4/locales/is.cjs';
 import { dbManager } from '../../database';
-import { NotFoundError } from '../middleware/errorHandler/errorTypes';
+import { NotFoundError, ValidationError } from '../middleware/errorHandler/errorTypes';
 import { Hazard } from '../models/Hazard';
+import oracledb from 'oracledb';
 
 export class HazardService {
   
-  async create(requestData: typeof Hazard.modelFor.createRequest, isUserLoggedIn: boolean): Promise<Hazard> {
-    const newHazard = Hazard.fromRequestData(requestData);
-    
-    const validation = newHazard.validate();
-    if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
-    }
+async create(
+  requestData: typeof Hazard.modelFor.createRequest,
+  isUserLoggedIn: boolean
+): Promise<Hazard> {
+  const newHazard = Hazard.fromRequestData(requestData);
 
-    const dbData = newHazard.toDatabaseFormat();
-    let result;
-    if(isUserLoggedIn){
-      result = await dbManager.executeQuery(
-        `INSERT INTO ORGIL.HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
-        VALUES (:1, :2, :3, :4, :5)`,
-        [
-          dbData.USER_ID,
-          dbData.TYPE_ID,
-          dbData.LOCATION_ID,
-          dbData.DESCRIPTION,
-          dbData.SOLUTION,
-        ],
-        { autoCommit: true }
-      );
-    }else{
-      result = await dbManager.executeQuery(
-        `INSERT INTO ORGIL.HAZARD (USER_NAME, EMAIL, PHONE_NUMBER, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
-        VALUES (:1, :2, :3, :4, :5, :6, :7)`,
-        [
-          dbData.USER_NAME,
-          dbData.EMAIL,
-          dbData.PHONE_NUMBER,
-          dbData.TYPE_ID,
-          dbData.LOCATION_ID,
-          dbData.DESCRIPTION,
-          dbData.SOLUTION,
-        ],
-        { autoCommit: true }
-      );
-    }
-    return result.rowsAffected && result.rowsAffected > 0 ? newHazard : Promise.reject('Failed to create hazard');
+  const validation = newHazard.validate();
+  if (!validation.isValid) {
+    throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
   }
+
+  const dbData = newHazard.toDatabaseFormat();
+  let result;
+  let generatedId: number;
+
+  // Replace 'ID' with the actual PK column name in your table
+  const pkColumn = 'ID';
+
+  if (isUserLoggedIn) {
+    result = await dbManager.executeQuery(
+      `INSERT INTO ORGIL.HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
+       VALUES (:1, :2, :3, :4, :5)
+       RETURNING ${pkColumn} INTO :6`,
+      [
+        dbData.USER_ID,
+        dbData.TYPE_ID,
+        dbData.LOCATION_ID,
+        dbData.DESCRIPTION,
+        dbData.SOLUTION,
+        { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      ],
+      { autoCommit: true }
+    );
+
+    generatedId = result.outBinds[0][0];
+  } else {
+    result = await dbManager.executeQuery(
+      `INSERT INTO ORGIL.HAZARD (USER_NAME, EMAIL, PHONE_NUMBER, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
+       VALUES (:1, :2, :3, :4, :5, :6, :7)
+       RETURNING ${pkColumn} INTO :8`,
+      [
+        dbData.USER_NAME,
+        dbData.EMAIL,
+        dbData.PHONE_NUMBER,
+        dbData.TYPE_ID,
+        dbData.LOCATION_ID,
+        dbData.DESCRIPTION,
+        dbData.SOLUTION,
+        { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      ],
+      { autoCommit: true }
+    );
+
+    generatedId = result.outBinds[0][0];
+  }
+
+  if (!generatedId) {
+    throw new Error('Failed to create hazard');
+  }
+
+  newHazard.id = generatedId;
+  return newHazard;
+}
+
+
 
   
   async getAll(
@@ -224,4 +249,28 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
 
     return (result.rowsAffected || 0) > 0;
   }
+
+ async uploadImages(hazardId: number, files: Express.Multer.File[]): Promise<number> {
+        const countResult = await dbManager.executeQuery(
+            `SELECT COUNT(*) AS CNT FROM ORGIL.HAZARD_IMAGE WHERE HAZARD_ID = :1`,
+            [hazardId],
+            // { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        const currentCount = countResult.rows?.[0]?.CNT || 0;
+        if (currentCount + files.length > 3) {
+            throw new ValidationError('A hazard cannot have more than 3 images');
+        }
+
+        for (const file of files) {
+            await dbManager.executeQuery(
+                `INSERT INTO ORGIL.HAZARD_IMAGE (HAZARD_ID, IMAGE_DATA)
+                 VALUES (:1, :2)`,
+                [hazardId, file.buffer],
+                { autoCommit: true }
+            );
+        }
+
+        return files.length;
+    }
 }

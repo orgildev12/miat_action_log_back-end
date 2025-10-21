@@ -5,6 +5,9 @@ import { AuthError, ConflictError, DatabaseUnavailableError, ForbiddenError, Not
 import { TaskOwnerService } from '../services/TaskOwnerService';
 import { UserService } from '../services/UserService';
 import { AdminService } from '../services/AdminService';
+import multer from 'multer';
+
+// const upload = multer({ storage: multer.memoryStorage() });
 
 export class HazardController {
     private hazardService = new HazardService();
@@ -160,4 +163,30 @@ export class HazardController {
             res.status(200).json('hazard deleted successfully');
         }
     };
+
+    uploadImages = async (req: Request, res: Response): Promise<void> => {
+        const hazardId = Number(req.params.hazardId);
+        const files = req.files as Express.Multer.File[];
+
+        if (isNaN(hazardId)) {
+            throw new ValidationError('Invalid hazard id');
+        }
+
+        if (!files || files.length === 0) {
+            throw new ValidationError('No images uploaded');
+        }
+
+        if (files.length > 3) {
+            throw new ValidationError('You can upload up to 3 images only');
+        }
+
+        // const userId = req.user?.id;
+        // if (!userId) {
+        //     throw new AuthError('Access denied oh');
+        // }
+
+        const uploaded = await this.hazardService.uploadImages(hazardId, files);
+        res.status(201).json({ message: `${uploaded} image(s) uploaded successfully` });
+    };
+
 }
