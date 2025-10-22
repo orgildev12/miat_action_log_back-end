@@ -164,6 +164,7 @@ export class HazardController {
         }
     };
 
+
     uploadImages = async (req: Request, res: Response): Promise<void> => {
         const hazardId = Number(req.params.hazardId);
         const files = req.files as Express.Multer.File[];
@@ -188,5 +189,83 @@ export class HazardController {
         const uploaded = await this.hazardService.uploadImages(hazardId, files);
         res.status(201).json({ message: `${uploaded} image(s) uploaded successfully` });
     };
+
+
+    getImagesForUnauthenticatedUsers = async (req: Request, res: Response): Promise<void> => {
+        const hazardId = Number(req.params.hazardId);
+        const hazard = await this.hazardService.getById(hazardId, false, false, false);
+        if(typeof hazard.user_id === 'number'){
+            throw new AuthError('Access denied');
+        }
+        const images = await this.hazardService.getImages(hazardId);
+        const imagesJson = images.map(img => ({
+            id: img.id,
+            hazard_id: img.hazard_id,
+            image_data: img.image_data.toString('base64')
+        }));
+
+        res.status(200).json(imagesJson);
+    }
+
+
+    getImagesForAuthenticatedUsers = async (req: Request, res: Response): Promise<void> => {
+        const userIdFromToken = req.user?.id;
+        const hazardId = Number(req.params.hazardId);
+        const hazard = await this.hazardService.getById(hazardId, false, true, false);
+        const userIdFromHazardOwner = hazard.user_id;
+        if(userIdFromHazardOwner !== userIdFromToken){
+            throw new ForbiddenError('Access denied');
+        }
+
+        const images = await this.hazardService.getImages(hazardId);
+        const imagesJson = images.map(img => ({
+            id: img.id,
+            hazard_id: img.hazard_id,
+            image_data: img.image_data.toString('base64')
+        }));
+
+        res.status(200).json(imagesJson);
+    }
+
+
+    getImagesForAdmins = async (req: Request, res: Response): Promise<void> => {
+        const id = Number(req.params.id);
+        const hazard = await this.hazardService.getById(id, false, true, true);
+
+        const isPrivate = hazard.is_private !== 0
+        if(isPrivate){
+            const adminRoleId = req.user?.role_id;
+            if(adminRoleId === undefined){
+                throw new AuthError('Access denied')
+            }
+            if(adminRoleId < 5){
+                const admin_id = req.body.admin_id;
+                const taskOwners = await this.taskOwnerService.getOwnersByHazardId(id);
+                const isOwner = taskOwners.find(owner => owner.admin_id === admin_id);
+                if(!isOwner){
+                    throw new ForbiddenError('Access denied')
+                }
+
+                const images = await this.hazardService.getImages(hazard.id!);
+                const imagesJson = images.map(img => ({
+                    id: img.id,
+                    hazard_id: img.hazard_id,
+                    image_data: img.image_data.toString('base64')
+                }));
+
+                res.status(200).json(imagesJson);
+                return;
+            }
+        }
+
+        const images = await this.hazardService.getImages(hazard.id!);
+        const imagesJson = images.map(img => ({
+            id: img.id,
+            hazard_id: img.hazard_id,
+            image_data: img.image_data.toString('base64')
+        }));
+
+        res.status(200).json(imagesJson);
+    }
 
 }

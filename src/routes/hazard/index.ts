@@ -15,7 +15,6 @@ const upload = multer({ storage: multer.memoryStorage() });
     router.post('/', verifyToken, asyncHandler(hazardController.create));
     // router.post('/:hazardId/images', asyncHandler(...hazardController.uploadImages));
 
-    router.post('/:hazardId/images', upload.array('images', 3), asyncHandler(hazardController.uploadImages));
 
 // GET ALL
     router.get('/', verifyToken, requireAdmin, asyncHandler(hazardController.getAllForNormalAdmins));
@@ -34,5 +33,10 @@ const upload = multer({ storage: multer.memoryStorage() });
     router.delete('/:id', verifyToken, requireSuperAdmin, asyncHandler(hazardController.delete));
     // TODO: add update method
 
+// IMAGE ROUTES
+    router.post('/:hazardId/images', upload.array('images', 3), asyncHandler(hazardController.uploadImages));
+    router.get('/:hazardId/image/noLogin', asyncHandler(hazardController.getImagesForUnauthenticatedUsers));
+    router.get('/:hazardId/image/forUser', verifyToken, asyncHandler(hazardController.getImagesForAuthenticatedUsers));
+    router.get('/:hazardId/image/forAdmin', verifyToken, requireAdmin, asyncHandler(hazardController.getImagesForAdmins));
 
 export default router;

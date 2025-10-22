@@ -3,6 +3,7 @@ import { dbManager } from '../../database';
 import { NotFoundError, ValidationError } from '../middleware/errorHandler/errorTypes';
 import { Hazard } from '../models/Hazard';
 import oracledb from 'oracledb';
+import { HazardImage } from '../models/HazardImage';
 
 export class HazardService {
   
@@ -250,27 +251,38 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
     return (result.rowsAffected || 0) > 0;
   }
 
- async uploadImages(hazardId: number, files: Express.Multer.File[]): Promise<number> {
-        const countResult = await dbManager.executeQuery(
-            `SELECT COUNT(*) AS CNT FROM ORGIL.HAZARD_IMAGE WHERE HAZARD_ID = :1`,
-            [hazardId],
-            // { outFormat: oracledb.OUT_FORMAT_OBJECT }
-        );
+  async uploadImages(hazardId: number, files: Express.Multer.File[]): Promise<number> {
+    const countResult = await dbManager.executeQuery(
+      `SELECT COUNT(*) AS CNT FROM ORGIL.HAZARD_IMAGE WHERE HAZARD_ID = :1`,
+      [hazardId],
+      // { outFormat: oracledb.OUT_FORMAT_OBJECT }
+    );
 
-        const currentCount = countResult.rows?.[0]?.CNT || 0;
-        if (currentCount + files.length > 3) {
-            throw new ValidationError('A hazard cannot have more than 3 images');
-        }
-
-        for (const file of files) {
-            await dbManager.executeQuery(
-                `INSERT INTO ORGIL.HAZARD_IMAGE (HAZARD_ID, IMAGE_DATA)
-                 VALUES (:1, :2)`,
-                [hazardId, file.buffer],
-                { autoCommit: true }
-            );
-        }
-
-        return files.length;
+    const currentCount = countResult.rows?.[0]?.CNT || 0;
+    if (currentCount + files.length > 3) {
+      throw new ValidationError('A hazard cannot have more than 3 images');
     }
+
+    for (const file of files) {
+      await dbManager.executeQuery(
+        `INSERT INTO ORGIL.HAZARD_IMAGE (HAZARD_ID, IMAGE_DATA)
+          VALUES (:1, :2)`,
+        [hazardId, file.buffer],
+        { autoCommit: true }
+      )
+    }
+
+    return files.length;
+  }
+
+  async getImages(hazardId: number): Promise<HazardImage[]>{
+    const result = await dbManager.executeQuery(
+      `SELECT * FROM ORGIL.HAZARD_IMAGE WHERE HAZARD_ID = :1`,
+      [hazardId]
+    );
+    if (result.rows) {
+      return result.rows.map(row => HazardImage.fromDatabase(row));
+    }
+    return []
+  }
 }
