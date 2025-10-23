@@ -57,6 +57,7 @@ CREATE TABLE hazard (
         description  NVARCHAR2(2000) NOT NULL,
         solution     NVARCHAR2(2000) NOT NULL,
         date_created DATE DEFAULT SYSDATE,
+        has_image   NUMBER(1) CHECK (has_image IN (0,1)) NOT NULL,
         CONSTRAINT fk_hazard_type
             FOREIGN KEY (type_id) REFERENCES hazard_type (id),
         CONSTRAINT fk_hazard_location

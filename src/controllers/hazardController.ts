@@ -6,6 +6,8 @@ import { TaskOwnerService } from '../services/TaskOwnerService';
 import { UserService } from '../services/UserService';
 import { AdminService } from '../services/AdminService';
 import multer from 'multer';
+import jwt from 'jsonwebtoken';
+import { authMiddleware } from '../middleware/auth';
 
 // const upload = multer({ storage: multer.memoryStorage() });
 
@@ -14,6 +16,7 @@ export class HazardController {
     private taskOwnerService = new TaskOwnerService();
     private userService = new UserService();
     private adminService = new AdminService();
+    private readonly JWT_SECRET = process.env.JWT_SECRET || 'secret-key';
 
     createWithoutLogin = async (req: Request, res: Response): Promise<void> => {
         const requestData: typeof Hazard.modelFor.createRequest = req.body;
@@ -166,49 +169,81 @@ export class HazardController {
 
 
     uploadImages = async (req: Request, res: Response): Promise<void> => {
-        const hazardId = Number(req.params.hazardId);
-        const files = req.files as Express.Multer.File[];
+    // хэн ч хэний ч hazard- луу зураг upload хийх боломжтой болсон байна. тэгэхээр 
+    // 1. hazard-үүссэнээс 1 минутын дотор л энэ function ажиллах боломжтой болгосон. done
+    // 2. token байвал userId-г нь шалгана. done
+    // 3. hazard-үүссэн ч зураг upload хийх хэсэг fail-двэл үүссэн hazard-ыг эргүүлж устгах logic нэмэх хэрэгтэй. todo
 
+    // 1
+        const hazardId = Number(req.params.hazardId);
+        const hazard = await this.hazardService.getById(hazardId, false, true, false);
+
+        const hazardCreatedDate = new Date(hazard.date_created!); // ensure Date
+        const now = Date.now();
+        const oneMinuteInMs = 60 * 1000;
+
+        if (now - hazardCreatedDate.getTime() > oneMinuteInMs) {
+            console.log(now - hazardCreatedDate.getTime())
+            console.log(oneMinuteInMs)
+            throw new ConflictError('Hazard was already created');
+        }
+
+    // 2
+        const authHeader = req.headers.authorization;
+        if(!authHeader || !authHeader.startsWith('Bearer ')){
+            throw new AuthError('invalid call')
+        }
+        // token эсвэл headers.authorization өөрөө байхгүй бол "Bearer null" гэж авдаг.
+        const token = authHeader.substring(7); // "Bearer "-ийг хасах
+        if (token == 'null') {
+            const files = req.files as Express.Multer.File[];
+            if (isNaN(hazardId)) {
+                throw new ValidationError('Invalid hazard id');
+            }
+            if (!files || files.length === 0) {
+                throw new ValidationError('No images uploaded');
+            }
+            if (files.length > 3) {
+                throw new ValidationError('You can upload up to 3 images only');
+            }
+
+            const uploaded = await this.hazardService.uploadImages(hazardId, files);
+            res.status(201).json({ message: `${uploaded} image(s) uploaded successfully` });
+            return;
+        }
+        
+        try {
+            const decoded = jwt.verify(token, this.JWT_SECRET) as any;
+            req.user = {
+                id: decoded.id,
+                user_name: decoded.user_name
+            };
+        } catch (jwtError) {
+            throw new AuthError('Invalid or expired token');
+        }
+
+        const userIdFromToken = req.user?.id;
+        const userId = hazard.user_id
+        if (userIdFromToken !== userId) {
+            throw new AuthError('Access deniedaaa');
+        }
+        const files = req.files as Express.Multer.File[];
         if (isNaN(hazardId)) {
             throw new ValidationError('Invalid hazard id');
         }
-
         if (!files || files.length === 0) {
             throw new ValidationError('No images uploaded');
         }
-
         if (files.length > 3) {
             throw new ValidationError('You can upload up to 3 images only');
         }
-
-        // const userId = req.user?.id;
-        // if (!userId) {
-        //     throw new AuthError('Access denied oh');
-        // }
 
         const uploaded = await this.hazardService.uploadImages(hazardId, files);
         res.status(201).json({ message: `${uploaded} image(s) uploaded successfully` });
     };
 
 
-    getImagesForUnauthenticatedUsers = async (req: Request, res: Response): Promise<void> => {
-        const hazardId = Number(req.params.hazardId);
-        const hazard = await this.hazardService.getById(hazardId, false, false, false);
-        if(typeof hazard.user_id === 'number'){
-            throw new AuthError('Access denied');
-        }
-        const images = await this.hazardService.getImages(hazardId);
-        const imagesJson = images.map(img => ({
-            id: img.id,
-            hazard_id: img.hazard_id,
-            image_data: img.image_data.toString('base64')
-        }));
-
-        res.status(200).json(imagesJson);
-    }
-
-
-    getImagesForAuthenticatedUsers = async (req: Request, res: Response): Promise<void> => {
+    getImagesForUsers = async (req: Request, res: Response): Promise<void> => {
         const userIdFromToken = req.user?.id;
         const hazardId = Number(req.params.hazardId);
         const hazard = await this.hazardService.getById(hazardId, false, true, false);

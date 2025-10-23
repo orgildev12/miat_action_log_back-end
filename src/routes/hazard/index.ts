@@ -35,8 +35,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // IMAGE ROUTES
     router.post('/:hazardId/images', upload.array('images', 3), asyncHandler(hazardController.uploadImages));
-    router.get('/:hazardId/image/noLogin', asyncHandler(hazardController.getImagesForUnauthenticatedUsers));
-    router.get('/:hazardId/image/forUser', verifyToken, asyncHandler(hazardController.getImagesForAuthenticatedUsers));
+    router.get('/:hazardId/image/forUser', verifyToken, asyncHandler(hazardController.getImagesForUsers));
     router.get('/:hazardId/image/forAdmin', verifyToken, requireAdmin, asyncHandler(hazardController.getImagesForAdmins));
 
 export default router;

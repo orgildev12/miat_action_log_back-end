@@ -27,15 +27,16 @@ async create(
 
   if (isUserLoggedIn) {
     result = await dbManager.executeQuery(
-      `INSERT INTO ORGIL.HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
-       VALUES (:1, :2, :3, :4, :5)
-       RETURNING ${pkColumn} INTO :6`,
+      `INSERT INTO ORGIL.HAZARD (USER_ID, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, HAS_IMAGE)
+       VALUES (:1, :2, :3, :4, :5, :6)
+       RETURNING ${pkColumn} INTO :7`,
       [
         dbData.USER_ID,
         dbData.TYPE_ID,
         dbData.LOCATION_ID,
         dbData.DESCRIPTION,
         dbData.SOLUTION,
+        dbData.HAS_IMAGE,
         { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
       ],
       { autoCommit: true }
@@ -44,9 +45,9 @@ async create(
     generatedId = result.outBinds[0][0];
   } else {
     result = await dbManager.executeQuery(
-      `INSERT INTO ORGIL.HAZARD (USER_NAME, EMAIL, PHONE_NUMBER, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION)
-       VALUES (:1, :2, :3, :4, :5, :6, :7)
-       RETURNING ${pkColumn} INTO :8`,
+      `INSERT INTO ORGIL.HAZARD (USER_NAME, EMAIL, PHONE_NUMBER, TYPE_ID, LOCATION_ID, DESCRIPTION, SOLUTION, HAS_IMAGE)
+       VALUES (:1, :2, :3, :4, :5, :6, :7, :8)
+       RETURNING ${pkColumn} INTO :9`,
       [
         dbData.USER_NAME,
         dbData.EMAIL,
@@ -55,6 +56,7 @@ async create(
         dbData.LOCATION_ID,
         dbData.DESCRIPTION,
         dbData.SOLUTION,
+        dbData.HAS_IMAGE,
         { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
       ],
       { autoCommit: true }
@@ -101,7 +103,7 @@ async create(
 
     if (!includeReference) {
       result = await dbManager.executeQuery(
-        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
+        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED, h.HAS_IMAGE
         FROM ORGIL.HAZARD h
         ${addJoin}
         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
@@ -111,7 +113,7 @@ async create(
       );
     } else {
       result = await dbManager.executeQuery(
-        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED,
+        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED, h.HAS_IMAGE,
           ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
           l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
           r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
@@ -157,7 +159,7 @@ async create(
 
     if(!includeReference){
       result = await dbManager.executeQuery(
-        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED
+        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED, h.HAS_IMAGE
         FROM ORGIL.HAZARD h
         INNER JOIN ORGIL.HAZARD_TYPE ht ON h.TYPE_ID = ht.ID
         ${whereClause}`,
@@ -165,7 +167,7 @@ async create(
       );
     }else{
       result = await dbManager.executeQuery(
-        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED,
+        `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.USER_ID, ${addSelect} h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED, h.HAS_IMAGE,
           ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
           l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
           r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
@@ -191,7 +193,7 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
   // Хэрэглэгчийн мэдээллийг агуулахгүй, 
   // зөвхөн тухайн админд хамаарах private hazard-уудыг буцаана.
     const result = await dbManager.executeQuery(
-      `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED,  
+      `SELECT h.ID, h.CODE, h.STATUS_EN, h.STATUS_MN, h.TYPE_ID, h.LOCATION_ID, h.DESCRIPTION, h.SOLUTION, h.DATE_CREATED, h.HAS_IMAGE,
         ht.IS_PRIVATE, ht.NAME_EN AS TYPE_NAME_EN, ht.NAME_MN AS TYPE_NAME_MN,
         l.NAME_EN AS LOCATION_NAME_EN, l.NAME_MN AS LOCATION_NAME_MN,
         r.IS_RESPONSE_CONFIRMED, r.RESPONSE_BODY, r.DATE_UPDATED
@@ -285,4 +287,20 @@ async getAllPrivateByAdminId(adminId: number): Promise<Hazard[]> {
     }
     return []
   }
+
+  async getSpecificImage(imageId: number): Promise<Buffer> {
+    const result = await dbManager.executeQuery(
+      `SELECT IMAGE_DATA FROM ORGIL.HAZARD_IMAGE WHERE ID = :1`,
+      [imageId]
+    );
+
+    if (!result || !result.rows || result.rows.length === 0) {
+      throw new NotFoundError('Image not found');
+    }
+
+    const imageBuffer = result.rows[0].IMAGE_DATA;
+    return imageBuffer;
+  }
+
+
 }

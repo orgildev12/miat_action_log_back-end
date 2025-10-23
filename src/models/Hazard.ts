@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import is from 'zod/v4/locales/is.cjs';
 
 const HazardSchema = z.object({
     id: z.number().int().positive().optional(),
@@ -25,6 +24,9 @@ const HazardSchema = z.object({
         .max(1000, 'Solution must be 1000 characters or less')
         .trim(),
     date_created: z.date().optional(), // Default SYSDATE
+    has_image: z.number().int().refine(value => value === 0 || value === 1, {
+        message: 'hasImage must be either 0 or 1'
+    }),
 });
 
 function isEmpty(val: unknown) {
@@ -55,7 +57,8 @@ const HazardJoinedSchema = z.object({
     is_response_confirmed: z.number().nullable().optional(),
     response_body: z.string().nullable().optional(),
     is_private: z.number().nullable().optional(),
-    date_updated: z.date().nullable().optional()
+    date_updated: z.date().nullable().optional(),
+    has_image: z.number().nullable().optional(),
 });
 
 type IHazardJoinedData = z.infer<typeof HazardJoinedSchema>;
@@ -71,6 +74,7 @@ export class Hazard implements IHazardData {
             location_id: number;
             description: string;
             solution: string;
+            has_image: number;
         },
         fetchData: {} as {
             ID?: number;
@@ -86,6 +90,7 @@ export class Hazard implements IHazardData {
             DESCRIPTION: string;
             SOLUTION?: string;
             DATE_CREATED?: Date;
+            HAS_IMAGE?: number;
         }
     };
 
@@ -102,6 +107,7 @@ export class Hazard implements IHazardData {
     public description: string;
     public solution: string;
     public date_created?: Date;
+    public has_image: number;
     // joined columns
     public type_name_en?: string | null;
     public type_name_mn?: string | null;
@@ -126,6 +132,7 @@ export class Hazard implements IHazardData {
         this.description = data.description;
         this.solution = data.solution;
         this.date_created = data.date_created;
+        this.has_image = data.has_image;
         // Assign joined fields if present
         if (joined) {
             this.type_name_en = joined.type_name_en ?? null;
@@ -165,6 +172,7 @@ export class Hazard implements IHazardData {
             DESCRIPTION: this.description,
             SOLUTION: this.solution,
             DATE_CREATED: this.date_created,
+            HAS_IMAGE: this.has_image
         };
     }
 
@@ -184,6 +192,7 @@ export class Hazard implements IHazardData {
                 description: this.description,
                 solution: this.solution,
                 date_created: this.date_created,
+                has_image: this.has_image,
             }
         }else{
             return {
@@ -200,6 +209,7 @@ export class Hazard implements IHazardData {
                 description: this.description,
                 solution: this.solution,
                 date_created: this.date_created,
+                has_image: this.has_image,
                 // joined fields
                 type_name_en: this.type_name_en,
                 type_name_mn: this.type_name_mn,
@@ -229,6 +239,7 @@ export class Hazard implements IHazardData {
             description: row.DESCRIPTION,
             solution: row.SOLUTION,
             date_created: row.DATE_CREATED,
+            has_image: row.HAS_IMAGE
         });
         // Validate joined fields
         const joined = HazardJoinedSchema.safeParse({
@@ -239,7 +250,8 @@ export class Hazard implements IHazardData {
             location_name_mn: row.LOCATION_NAME_MN ?? null,
             is_response_confirmed: row.IS_RESPONSE_CONFIRMED ?? null,
             response_body: row.RESPONSE_BODY ?? null,
-            date_updated: row.DATE_UPDATED ?? null
+            date_updated: row.DATE_UPDATED ?? null,
+            has_image: row.HAS_IMAGE ?? null
         });
         return new Hazard(core, joined.success ? joined.data : undefined);
     }
@@ -256,6 +268,7 @@ export class Hazard implements IHazardData {
             location_id: request.location_id,
             description: request.description,
             solution: request.solution,
+            has_image: request.has_image
         });
     }
 }
