@@ -2,13 +2,17 @@ import { Router } from 'express';
 import { HazardController } from '../../controllers/HazardController';
 import { asyncHandler } from '../../middleware/errorHandler/asyncHandler';
 import { authMiddleware } from '../../middleware/auth';
+import { imageCompressor } from '../../middleware/imageCompressor';
 import multer from 'multer';
 
 const router = Router();
 const hazardController = new HazardController();
 const { verifyToken, requireAdmin, requireSuperAdmin, requireSpecialAdmin } = authMiddleware;
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 // POST
     router.post('/noLogin', asyncHandler(hazardController.createWithoutLogin));
@@ -34,7 +38,7 @@ const upload = multer({ storage: multer.memoryStorage() });
     // TODO: add update method
 
 // IMAGE ROUTES
-    router.post('/:hazardId/images', upload.array('images', 3), asyncHandler(hazardController.uploadImages));
+    router.post('/:hazardId/images', upload.array('images', 3), imageCompressor, asyncHandler(hazardController.uploadImages));
     router.get('/:hazardId/image/forUser', verifyToken, asyncHandler(hazardController.getImagesForUsers));
     router.get('/:hazardId/image/forAdmin', verifyToken, requireAdmin, asyncHandler(hazardController.getImagesForAdmins));
 

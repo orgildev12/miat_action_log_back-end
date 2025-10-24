@@ -8,12 +8,12 @@ const responseController = new ResponseController();
 const { verifyToken, requireAdmin, requireResponseAdmin, requireAuditAdmin, requireTaskAdmin } = authMiddleware;
 
 // for admin (public hazards)
-router.get('/',    requireAdmin, asyncHandler(responseController.getAll));
-router.get('/:id', requireAdmin, asyncHandler(responseController.getById));
+router.get('/', verifyToken,  requireAdmin, asyncHandler(responseController.getAll));
+router.get('/:id', verifyToken, requireAdmin, asyncHandler(responseController.getById));
 
 // for response admin (public hazards)
 router.put('/:id/start-analysis',  verifyToken, requireResponseAdmin, asyncHandler(responseController.startAnalysis));
-router.put('/:id/response-body',   verifyToken, requireResponseAdmin, asyncHandler(responseController.updateResponseBody));
+router.put('/:id/update-body',   verifyToken, requireResponseAdmin, asyncHandler(responseController.updateResponseBody));
 router.put('/:id/approve-request', verifyToken, requireResponseAdmin, asyncHandler(responseController.approveRequest));
 router.put('/:id/deny-request',    verifyToken, requireResponseAdmin, asyncHandler(responseController.denyRequest));
 router.put('/:id/finish-analysis', verifyToken, requireResponseAdmin, asyncHandler(responseController.finishAnalysis));
@@ -24,11 +24,11 @@ router.put('/:id/deny-response',    verifyToken, requireAuditAdmin, asyncHandler
 
 
 // TODO: add routes for special admin
-router.put('/:id/start-analysis',  verifyToken, requireResponseAdmin, asyncHandler(responseController.startAnalysis));
-router.put('/:id/response-body',   verifyToken, requireResponseAdmin, asyncHandler(responseController.updateResponseBody));
-router.put('/:id/approve-request', verifyToken, requireResponseAdmin, asyncHandler(responseController.approveRequest));
-router.put('/:id/deny-request',    verifyToken, requireResponseAdmin, asyncHandler(responseController.denyRequest));
-router.put('/:id/finish-analysis', verifyToken, requireResponseAdmin, asyncHandler(responseController.finishAnalysis));
+// router.put('/:id/start-analysis',  verifyToken, requireResponseAdmin, asyncHandler(responseController.startAnalysis));
+// router.put('/:id/response-body',   verifyToken, requireResponseAdmin, asyncHandler(responseController.updateResponseBody));
+// router.put('/:id/approve-request', verifyToken, requireResponseAdmin, asyncHandler(responseController.approveRequest));
+// router.put('/:id/deny-request',    verifyToken, requireResponseAdmin, asyncHandler(responseController.denyRequest));
+// router.put('/:id/finish-analysis', verifyToken, requireResponseAdmin, asyncHandler(responseController.finishAnalysis));
 
 // Create, delete үйлдэл database дээр trigger-ээр зохицуулагдана.
 

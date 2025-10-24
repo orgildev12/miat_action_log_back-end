@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ResponseService } from '../services/ResponseService';
-import { ConflictError, DatabaseUnavailableError, ForbiddenError } from '../middleware/errorHandler/errorTypes';
+import { ConflictError, DatabaseUnavailableError, ForbiddenError, ValidationError } from '../middleware/errorHandler/errorTypes';
 import { HazardService } from '../services/HazardService';
 import { HazardPermissionChecker } from '../utils/hazardPermisionChecker';
 
@@ -79,6 +79,11 @@ export class ResponseController {
         if(response.isStarted !== 1){
             throw new ConflictError(`request analysis not started yet`);
         }
+        if(responseBody.length < 20){
+            throw new ValidationError('response body too short')
+            // response body нь анх null байх шаардлагатай болохоор үүнд дээр validate() method-ыг 
+            // хэрэглэх боломжгүй байсан.
+        }
         const isAppected = await this.responseService.approveRequest(id, responseBody);
         if(!isAppected){
             throw new DatabaseUnavailableError();
@@ -107,13 +112,13 @@ export class ResponseController {
         const id = Number(req.params.id);
         await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 2)
         const response = await this.responseService.getById(id);
-        if(response.isRequestApproved === 0){
+        if(typeof response.isRequestApproved !== 'number'){
             throw new ConflictError(`request not approved or denied yet`);
         }
 
         const bodyLength = response.responseBody?.trim().length || 0
         if(bodyLength < 20){
-            throw new ConflictError(`response body too short`);
+            throw new ValidationError(`response body too short`);
         }
 
         const isAppected = await this.responseService.finishAnalysis(id);
@@ -125,18 +130,23 @@ export class ResponseController {
 
     // for audit admin
     confirmResponse = async (req: Request, res: Response): Promise<void> => {
-        const id = Number(req.params.id);
-        await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 3)
-        const response = await this.responseService.getById(id);
-        if(response.isResponseFinished === 0){
-            throw new ConflictError(`request not finished yet`);
-        }
-        const isAppected = await this.responseService.confirmResponse(id);
-        if(!isAppected){
-            throw new DatabaseUnavailableError();
-        }
-        res.status(200).json('response confirmed successfully')
+    const id = Number(req.params.id);
+    await this.hazardPermissionChecker.checkPermissionForAccess(id, req, 3);
+
+    const response = await this.responseService.getById(id);
+
+    if(response.isResponseFinished === 0){
+        throw new ConflictError(`request not finished yet`);
+    }
+
+    const isAppected = await this.responseService.confirmResponse(id, response.isRequestApproved ?? 0);
+    if(!isAppected){
+        throw new DatabaseUnavailableError();
+    }
+
+    res.status(200).json('response confirmed successfully');
     };
+
 
 
     denyResponse = async (req: Request, res: Response): Promise<void> => {

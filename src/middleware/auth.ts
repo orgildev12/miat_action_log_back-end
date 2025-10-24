@@ -4,7 +4,6 @@ import { UserService } from '../services/UserService';
 import { AuthError, ForbiddenError } from '../middleware/errorHandler/errorTypes';
 import { AdminService } from '../services/AdminService';
 
-// Extend Express Request type to include user
 declare global {
     namespace Express {
         interface Request {
@@ -19,7 +18,7 @@ declare global {
 }
 
 export class AuthMiddleware {
-    private readonly JWT_SECRET = process.env.JWT_SECRET || 'secret-key';
+    private readonly JWT_SECRET = process.env.JWT_SECRET || 'MyVerySecretKeyHha';
     private adminService = new AdminService;
 
     generateToken = (user: any): string => {
@@ -44,7 +43,6 @@ export class AuthMiddleware {
         
         try {
             const decoded = jwt.verify(token, this.JWT_SECRET) as any;
-            
             req.user = {
                 id: decoded.id,
                 user_name: decoded.user_name

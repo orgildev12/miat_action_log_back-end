@@ -1,7 +1,7 @@
 import { dbManager } from '../../database';
 import { NotFoundError } from '../middleware/errorHandler/errorTypes';
 import { ResponseModel } from '../models/Response';
-
+import oracledb from 'oracledb';
 export class ResponseService {
   
   async getByIdForUser(id: number): Promise<ResponseModel> {
@@ -64,19 +64,37 @@ export class ResponseService {
 
   async updateResponseBody(id: number, responseBody: string): Promise<boolean> {
     const result = await dbManager.executeQuery(
-      `UPDATE ORGIL.RESPONSE SET RESPONSE_BODY = :2, DATE_UPDATED = SYSDATE WHERE HAZARD_ID = :1`,
-      [ id, responseBody ],
+      `UPDATE ORGIL.RESPONSE 
+      SET RESPONSE_BODY = :responseBody,
+          DATE_UPDATED = SYSDATE
+      WHERE HAZARD_ID = :hazardId`,
+      {
+        hazardId: { val: id, type: oracledb.NUMBER },
+        responseBody: { val: responseBody ?? null, type: oracledb.CLOB }
+      },
       { autoCommit: true }
     );
-    const isAppected = (result.rowsAffected || 0) > 0
-    return isAppected
+
+    return (result.rowsAffected || 0) > 0;
   }
 
+
   async approveRequest(id: number, responseBody: string): Promise<boolean> {
+    console.log('in service')
+    console.log(typeof id, id);
+    console.log(typeof responseBody, responseBody);
     const result = await dbManager.executeQuery(
-      `UPDATE ORGIL.RESPONSE SET IS_REQUEST_APPROVED = 1, CURRENT_STATUS = 'Шийдэгдсэн', RESPONSE_BODY = :2, DATE_UPDATED = SYSDATE WHERE HAZARD_ID = :1`,
-      [ id, responseBody ],
-      { autoCommit: true }
+      `UPDATE ORGIL.RESPONSE
+      SET IS_REQUEST_APPROVED = 1,
+          CURRENT_STATUS = 'Шийдэгдсэн',
+          RESPONSE_BODY = :responseBody,
+          DATE_UPDATED = SYSDATE
+      WHERE HAZARD_ID = :hazardId`,
+      {
+        hazardId: { val: id, type: oracledb.NUMBER },
+        responseBody: { val: responseBody ?? null, type: oracledb.CLOB }
+      },
+      { autoCommit: true, outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
     if ((result.rowsAffected || 0) === 0) {
       return false;
@@ -87,17 +105,21 @@ export class ResponseService {
   async denyRequest(id: number, responseBody: string): Promise<boolean> {
     const result = await dbManager.executeQuery(
       `UPDATE ORGIL.RESPONSE 
-      SET IS_REQUEST_APPROVED = 0, CURRENT_STATUS = 'Татгалзсан', RESPONSE_BODY = :2, DATE_UPDATED = SYSDATE 
-      WHERE HAZARD_ID = :1`,
-      [ id, responseBody ],
+      SET IS_REQUEST_APPROVED = 0,
+          CURRENT_STATUS = 'Татгалзсан',
+          RESPONSE_BODY = :responseBody,
+          DATE_UPDATED = SYSDATE
+      WHERE HAZARD_ID = :hazardId`,
+      {
+        hazardId: { val: id, type: oracledb.NUMBER },
+        responseBody: { val: responseBody ?? null, type: oracledb.CLOB }
+      },
       { autoCommit: true }
     );
 
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
+    return (result.rowsAffected || 0) > 0;
   }
+
 
   async finishAnalysis(id: number): Promise<boolean> {
     const result = await dbManager.executeQuery(
@@ -113,33 +135,41 @@ export class ResponseService {
   }
 
 
-  async confirmResponse(id: number): Promise<boolean> {
-    const result = await dbManager.executeQuery(
-      `UPDATE ORGIL.RESPONSE 
-      SET IS_RESPONSE_CONFIRMED = 1, CURRENT_STATUS = 'Зөвшөөрсөн', DATE_UPDATED = SYSDATE 
-      WHERE HAZARD_ID = :1`,
-      [ id ],
-      { autoCommit: true }
-    );
+  async confirmResponse(id: number, isRequestApproved: number | null): Promise<boolean> {
+      const newStatus = isRequestApproved === 0 ? 'Татгалзсан' : 'Шийдэгдсэн';
 
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
+      const result = await dbManager.executeQuery(
+          `UPDATE ORGIL.RESPONSE 
+          SET IS_RESPONSE_CONFIRMED = 1, CURRENT_STATUS = :currentStatus, DATE_UPDATED = SYSDATE 
+          WHERE HAZARD_ID = :hazardId`,
+          {
+              hazardId: { val: id, type: oracledb.NUMBER },
+              currentStatus: { val: newStatus, type: oracledb.STRING, maxSize: 200 }
+          },
+          { autoCommit: true }
+      );
+
+      return (result.rowsAffected || 0) > 0;
   }
+
 
   async denyResponse(id: number, reasonToDeny: string): Promise<boolean> {
     const result = await dbManager.executeQuery(
       `UPDATE ORGIL.RESPONSE 
-      SET IS_RESPONSE_FINISHED = 0, IS_RESPONSE_DENIED = 1, CURRENT_STATUS = 'Буцаасан', REASON_TO_DENY = :2, DATE_UPDATED = SYSDATE 
-      WHERE HAZARD_ID = :1`,
-      [ id, reasonToDeny ],
+      SET IS_RESPONSE_FINISHED = 0,
+          IS_RESPONSE_DENIED = 1,
+          CURRENT_STATUS = 'Буцаасан',
+          REASON_TO_DENY = :reason,
+          DATE_UPDATED = SYSDATE
+      WHERE HAZARD_ID = :hazardId`,
+      {
+        hazardId: { val: id, type: oracledb.NUMBER },
+        reason: { val: reasonToDeny ?? null, type: oracledb.STRING }
+      },
       { autoCommit: true }
     );
 
-    if ((result.rowsAffected || 0) === 0) {
-      return false;
-    }
-    return true;
+    return (result.rowsAffected || 0) > 0;
   }
+
 }

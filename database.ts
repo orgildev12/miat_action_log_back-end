@@ -1,5 +1,6 @@
 import oracledb from 'oracledb';
 import { dbConfig, DatabaseConfig } from './src/config/db';
+import { GenericError } from './src/middleware/errorHandler/errorTypes';
 
 // Set Oracle client environment for UTF-8 support for Mongolian/Cyrillic text
 process.env.NLS_LANG = 'AMERICAN_AMERICA.AL32UTF8';
@@ -58,58 +59,46 @@ export class DatabaseManager {
     }
   }
 
-  public async executeQuery<T = any>(
-    sql: string, 
-    binds: any[] = [], 
-    options: oracledb.ExecuteOptions = {}
-  ): Promise<oracledb.Result<T>> {
-    if (!this.pool) {
-      throw new Error('Database pool not initialized');
-    }
+public async executeQuery<T = any>(
+  sql: string,
+  binds: any[] | Record<string, any> = {},
+  options: oracledb.ExecuteOptions = {}
+): Promise<oracledb.Result<T>> {
+  if (!this.pool) throw new Error('Database pool not initialized');
 
-    let connection: oracledb.Connection | undefined;
-    
-    try {
-      connection = await this.pool.getConnection();
-      
-      // Set connection-level character encoding for this session
-      
-      // Process bind parameters to ensure proper UTF-8 encoding for Oracle
-      const processedBinds = binds.map(bind => {
-        if (typeof bind === 'string') {
-          return {
-            val: bind,
-            type: oracledb.STRING,
-            maxSize: bind ? bind.length * 4 : 4000 // Fallback if bind is empty
-          };
-        }
-        if (bind === undefined) return null;
-        return bind;
-      });
-      
-      const defaultOptions: oracledb.ExecuteOptions = {
-        outFormat: oracledb.OUT_FORMAT_OBJECT,
-        autoCommit: true,
-        // Ensure proper handling of Unicode/UTF-8 data
-        fetchInfo: {},
-        ...options
-      };
-      
-      const result = await connection.execute<T>(sql, processedBinds, defaultOptions);
-      return result;
-    } catch (error) {
-      console.error('Database query error:', error);
-      throw error;
-    } finally {
-      if (connection) {
-        try {
-          await connection.close();
-        } catch (error) {
-          console.error('Error closing connection:', error);
-        }
-      }
+  let connection: oracledb.Connection | undefined;
+
+  try {
+    connection = await this.pool.getConnection();
+
+    // If array, map strings; if object, leave as-is (so you can pass explicit types)
+    const processedBinds = Array.isArray(binds)
+      ? binds.map(bind => {
+          if (typeof bind === 'string') {
+            return { val: bind, type: oracledb.STRING, maxSize: bind.length * 4 };
+          }
+          return bind;
+        })
+      : binds;
+
+    const defaultOptions: oracledb.ExecuteOptions = {
+      outFormat: oracledb.OUT_FORMAT_OBJECT,
+      autoCommit: true,
+      ...options
+    };
+
+    const result = await connection.execute<T>(sql, processedBinds, defaultOptions);
+    return result;
+  } catch (error) {
+    console.error('Database query error:', error);
+    throw error
+  } finally {
+    if (connection) {
+      await connection.close();
     }
   }
+}
+
 
   public async executeMany(
     sql: string,
